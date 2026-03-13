@@ -57,6 +57,9 @@ class Load(Base, TimestampMixin):
     status_events: Mapped[list["LoadStatusEvent"]] = relationship("LoadStatusEvent", back_populates="load")
     invoice_packet: Mapped["InvoicePacket | None"] = relationship("InvoicePacket", back_populates="load", uselist=False)
     receivable: Mapped["Receivable | None"] = relationship("Receivable", back_populates="load", uselist=False)
+    accessorial_charges: Mapped[list["AccessorialCharge"]] = relationship(
+        "AccessorialCharge", back_populates="load", order_by="AccessorialCharge.created_at"
+    )
 
 
 class LoadStop(Base, TimestampMixin):
@@ -160,3 +163,34 @@ class Receivable(Base, TimestampMixin):
     last_reminder_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     load: Mapped["Load"] = relationship("Load", back_populates="receivable")
+
+
+ACCESSORIAL_TYPES = [
+    "detention",
+    "layover",
+    "tonu",
+    "lumper",
+    "fuel_surcharge",
+    "toll",
+    "other",
+]
+
+
+class AccessorialCharge(Base, TimestampMixin):
+    __tablename__ = "accessorial_charges"
+    __table_args__ = (Index("ix_accessorial_charges_load_id", "load_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False)
+    charge_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    load: Mapped["Load"] = relationship("Load", back_populates="accessorial_charges")

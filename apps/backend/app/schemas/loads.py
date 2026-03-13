@@ -133,3 +133,38 @@ class LoadListItem(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Accessorial Charges ──────────────────────────────────────────────────────
+
+
+class AccessorialChargeCreate(BaseModel):
+    charge_type: str = Field(max_length=30)
+    description: Optional[str] = Field(default=None, max_length=500)
+    amount: Decimal = Field(ge=0, le=1000000)
+    occurred_at: Optional[datetime] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AccessorialChargeUpdate(BaseModel):
+    charge_type: Optional[str] = Field(default=None, max_length=30)
+    description: Optional[str] = Field(default=None, max_length=500)
+    amount: Optional[Decimal] = Field(default=None, ge=0, le=1000000)
+    status: Optional[str] = Field(default=None, max_length=20)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AccessorialChargeResponse(BaseModel):
+    id: uuid.UUID
+    load_id: uuid.UUID
+    charge_type: str
+    description: Optional[str] = None
+    amount: Decimal
+    status: str
+    occurred_at: Optional[datetime] = None
+    approved_by: Optional[uuid.UUID] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

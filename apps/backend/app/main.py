@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
+    accessorials,
     analytics,
     auth,
     brokers,
@@ -85,4 +86,5 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(scoring.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(sandbox.router, prefix="/api")
+app.include_router(accessorials.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")

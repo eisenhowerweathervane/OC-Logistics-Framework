@@ -20,6 +20,7 @@ from app.db.models.fleet import Broker, Driver, Trailer, Vehicle
 from app.db.models.loads import (
     LOAD_STATUSES,
     VALID_TRANSITIONS,
+    AccessorialCharge,
     Assignment,
     InvoicePacket,
     Load,
@@ -44,6 +45,7 @@ __all__ = [
     "LoadStatusEvent",
     "InvoicePacket",
     "Receivable",
+    "AccessorialCharge",
     "VALID_TRANSITIONS",
     "LOAD_STATUSES",
     "Document",

@@ -1,7 +1,7 @@
 /**
  * OC Logistics TMS — OpenClaw Plugin
  *
- * Registers 53 agent tools that give the AI dispatcher direct read/write access
+ * Registers 58 agent tools that give the AI dispatcher direct read/write access
  * to the OC Logistics backend API.
  *
  * Required environment variables (set in the agent's env or via `openclaw config`):
@@ -24,6 +24,7 @@
  *                  create_roadside_inspection, list_roadside_inspections,
  *                  create_eld_day, list_eld_days
  *   Analytics    — dashboard, revenue_report, fleet_utilization, fuel_costs
+ *   Accessorials — add_accessorial, list_accessorials, update_accessorial, accessorial_summary
  *   Scoring      — score_load, lane_profitability, broker_ratings
  *   Notifications — send_overdue_ar_summary, send_compliance_check
  *   WhatsApp     — driver_by_phone, notify_driver_dispatched, notify_driver_docs_needed
@@ -56,6 +57,7 @@ import {
   tmsListEldDays,
 } from "./src/tools/compliance.js";
 import { tmsDashboard, tmsRevenueReport, tmsFleetUtilization, tmsFuelCosts } from "./src/tools/analytics.js";
+import { tmsAddAccessorial, tmsListAccessorials, tmsUpdateAccessorial, tmsAccessorialSummary } from "./src/tools/accessorials.js";
 import { tmsScoreLoad, tmsLaneProfitability, tmsBrokerRatings } from "./src/tools/scoring.js";
 import { tmsSendOverdueArSummary, tmsSendComplianceCheck } from "./src/tools/notifications.js";
 import { tmsDriverByPhone, tmsNotifyDriverDispatched, tmsNotifyDriverDocsNeeded } from "./src/tools/whatsapp.js";
@@ -122,6 +124,12 @@ export default function register(api: OpenClawPluginApi): void {
   api.registerTool(tmsCreateEldDay);
   api.registerTool(tmsListEldDays);
 
+  // Accessorial charges
+  api.registerTool(tmsAddAccessorial);
+  api.registerTool(tmsListAccessorials);
+  api.registerTool(tmsUpdateAccessorial);
+  api.registerTool(tmsAccessorialSummary);
+
   // Analytics & reporting
   api.registerTool(tmsDashboard);
   api.registerTool(tmsRevenueReport);
@@ -149,5 +157,5 @@ export default function register(api: OpenClawPluginApi): void {
   // System meta
   api.registerTool(tmsSystemInfo);
 
-  api.logger.info(`OC Logistics plugin loaded — ${54} tools registered`);
+  api.logger.info(`OC Logistics plugin loaded — ${58} tools registered`);
 }
