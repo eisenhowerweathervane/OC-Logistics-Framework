@@ -1,7 +1,7 @@
 """Tests for fleet CRUD routes: drivers, vehicles, trailers, brokers."""
+
 import pytest
 from httpx import AsyncClient
-
 
 # ── Drivers ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +56,7 @@ async def test_update_driver(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_driver_not_found(client: AsyncClient):
     import uuid
+
     resp = await client.get(f"/api/drivers/{uuid.uuid4()}")
     assert resp.status_code == 404
 
@@ -100,6 +101,7 @@ async def test_update_vehicle(client: AsyncClient):
 
 
 # ── Trailers ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_trailer(client: AsyncClient):

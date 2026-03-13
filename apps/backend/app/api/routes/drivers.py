@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
@@ -7,9 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbDep, DispatcherUser
+from app.db.models.documents import Document, DocumentLink
 from app.db.models.fleet import Driver, Trailer
-from app.db.models.loads import Assignment, Load, LoadStop
-from app.db.models.documents import DocumentLink, Document
+from app.db.models.loads import Assignment, LoadStop
 from app.schemas.compliance import DriverContextResponse
 from app.schemas.fleet import DriverCreate, DriverResponse, DriverUpdate
 
@@ -110,9 +109,7 @@ async def get_driver_by_phone(phone: str, db: DbDep, user: CurrentUser):
 @router.get("/{driver_id}/current-context", response_model=DriverContextResponse)
 async def get_driver_context(driver_id: uuid.UUID, db: DbDep, user: CurrentUser):
     result = await db.execute(
-        select(Driver).where(
-            Driver.id == driver_id, Driver.organization_id == user.organization_id
-        )
+        select(Driver).where(Driver.id == driver_id, Driver.organization_id == user.organization_id)
     )
     driver = result.scalar_one_or_none()
     if not driver:
@@ -148,9 +145,7 @@ async def get_driver_context(driver_id: uuid.UUID, db: DbDep, user: CurrentUser)
     # Trailer number
     trailer_number = None
     if assignment.trailer_id:
-        trailer_result = await db.execute(
-            select(Trailer).where(Trailer.id == assignment.trailer_id)
-        )
+        trailer_result = await db.execute(select(Trailer).where(Trailer.id == assignment.trailer_id))
         trailer = trailer_result.scalar_one_or_none()
         if trailer:
             trailer_number = trailer.trailer_number

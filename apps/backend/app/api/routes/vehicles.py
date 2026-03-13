@@ -77,9 +77,7 @@ async def update_vehicle(vehicle_id: uuid.UUID, body: VehicleUpdate, db: DbDep, 
 @router.get("/{vehicle_id}/compliance-summary", response_model=VehicleComplianceSummary)
 async def get_vehicle_compliance(vehicle_id: uuid.UUID, db: DbDep, user: CurrentUser):
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     vehicle = vehicle_result.scalar_one_or_none()
     if not vehicle:

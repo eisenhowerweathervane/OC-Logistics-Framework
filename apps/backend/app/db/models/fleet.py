@@ -1,9 +1,9 @@
 import uuid
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy import Date, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
 
@@ -33,9 +33,7 @@ class Driver(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     first_name: Mapped[str] = mapped_column(Text, nullable=False)
     last_name: Mapped[str] = mapped_column(Text, nullable=False)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)

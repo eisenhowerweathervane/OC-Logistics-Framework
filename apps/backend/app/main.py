@@ -4,8 +4,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
-    analytics, auth, brokers, compliance, documents, drivers, eld, fuel, health, invoices,
-    loads, meta, notifications, sandbox, scoring, trailers, vehicles,
+    analytics,
+    auth,
+    brokers,
+    compliance,
+    documents,
+    drivers,
+    eld,
+    fuel,
+    health,
+    invoices,
+    loads,
+    meta,
+    notifications,
+    sandbox,
+    scoring,
+    trailers,
+    vehicles,
 )
 from app.core.config import settings
 from app.core.logging import configure_logging

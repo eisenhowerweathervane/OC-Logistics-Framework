@@ -1,4 +1,5 @@
 """Tests for load scoring, lane profitability, and broker ratings."""
+
 import pytest
 from httpx import AsyncClient
 
@@ -11,15 +12,18 @@ async def _create_load_with_stops(
     origin_state: str = "TX",
     dest_state: str = "OK",
 ) -> dict:
-    resp = await client.post("/api/loads", json={
-        "rate_total": rate,
-        "miles_loaded": miles,
-        "miles_deadhead_est": deadhead,
-        "stops": [
-            {"seq": 1, "stop_type": "pickup", "city": "Dallas", "state": origin_state},
-            {"seq": 2, "stop_type": "delivery", "city": "OKC", "state": dest_state},
-        ],
-    })
+    resp = await client.post(
+        "/api/loads",
+        json={
+            "rate_total": rate,
+            "miles_loaded": miles,
+            "miles_deadhead_est": deadhead,
+            "stops": [
+                {"seq": 1, "stop_type": "pickup", "city": "Dallas", "state": origin_state},
+                {"seq": 2, "stop_type": "delivery", "city": "OKC", "state": dest_state},
+            ],
+        },
+    )
     assert resp.status_code == 201
     return resp.json()
 
@@ -69,7 +73,15 @@ async def test_lane_profitability_with_delivered_loads(client: AsyncClient):
     assert resp.json() == []
 
     # Advance to delivered
-    for next_status in ["booked", "dispatched", "arrived_pickup", "loaded", "in_transit", "arrived_delivery", "delivered"]:
+    for next_status in [
+        "booked",
+        "dispatched",
+        "arrived_pickup",
+        "loaded",
+        "in_transit",
+        "arrived_delivery",
+        "delivered",
+    ]:
         await client.post(
             f"/api/loads/{load['id']}/status-events",
             json={"status": next_status, "occurred_at": "2026-03-12T12:00:00Z"},

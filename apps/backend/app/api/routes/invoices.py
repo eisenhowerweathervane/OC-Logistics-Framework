@@ -16,9 +16,7 @@ router = APIRouter(tags=["invoices"])
 @router.get("/loads/{load_id}/invoice-packet", response_model=InvoicePacketResponse)
 async def get_invoice_packet(load_id: uuid.UUID, db: DbDep, user: CurrentUser):
     # Verify load belongs to user's org
-    load_result = await db.execute(
-        select(Load).where(Load.id == load_id, Load.organization_id == user.organization_id)
-    )
+    load_result = await db.execute(select(Load).where(Load.id == load_id, Load.organization_id == user.organization_id))
     if not load_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Load not found")
     packet = await invoice_service.get_packet(db, load_id)
@@ -30,9 +28,7 @@ async def get_invoice_packet(load_id: uuid.UUID, db: DbDep, user: CurrentUser):
 @router.post("/loads/{load_id}/invoice-packet/generate", response_model=InvoicePacketResponse, status_code=200)
 async def generate_invoice_packet(load_id: uuid.UUID, db: DbDep, user: DispatcherUser):
     # Verify load belongs to user's org
-    load_result = await db.execute(
-        select(Load).where(Load.id == load_id, Load.organization_id == user.organization_id)
-    )
+    load_result = await db.execute(select(Load).where(Load.id == load_id, Load.organization_id == user.organization_id))
     if not load_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Load not found")
     return await invoice_service.check_readiness(db, load_id, org_id=user.organization_id)

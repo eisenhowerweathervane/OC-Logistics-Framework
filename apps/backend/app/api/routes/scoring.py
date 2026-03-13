@@ -3,6 +3,7 @@ Load scoring and profitability analysis routes.
 
 Provides rate-per-mile scoring, lane profitability analysis, and broker ratings.
 """
+
 import uuid
 from typing import Optional
 
@@ -32,9 +33,7 @@ async def get_lane_profitability(
     limit: int = 20,
 ):
     """Analyze lane profitability by origin→destination state."""
-    return await scoring_service.lane_profitability(
-        db, user.organization_id, origin_state, dest_state, limit
-    )
+    return await scoring_service.lane_profitability(db, user.organization_id, origin_state, dest_state, limit)
 
 
 @router.get("/brokers")

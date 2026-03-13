@@ -5,8 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 # ── Maintenance ───────────────────────────────────────────────────────────────
+
 
 class MaintenanceItemCreate(BaseModel):
     vehicle_id: uuid.UUID
@@ -41,6 +41,7 @@ class MaintenanceItemResponse(BaseModel):
 
 # ── Annual Inspection ─────────────────────────────────────────────────────────
 
+
 class AnnualInspectionCreate(BaseModel):
     vehicle_id: uuid.UUID
     inspected_at: date
@@ -65,6 +66,7 @@ class AnnualInspectionResponse(BaseModel):
 
 # ── Roadside Inspection ───────────────────────────────────────────────────────
 
+
 class RoadsideInspectionCreate(BaseModel):
     vehicle_id: uuid.UUID
     inspected_at: date
@@ -86,6 +88,7 @@ class RoadsideInspectionResponse(BaseModel):
 
 
 # ── Fuel ──────────────────────────────────────────────────────────────────────
+
 
 class FuelPurchaseCreate(BaseModel):
     vehicle_id: uuid.UUID
@@ -122,6 +125,7 @@ class FuelPurchaseResponse(BaseModel):
 
 
 # ── ELD ───────────────────────────────────────────────────────────────────────
+
 
 class EldDayCreate(BaseModel):
     driver_id: uuid.UUID

@@ -1,12 +1,12 @@
 """Unit tests for security utilities."""
-import pytest
+
 from app.core.security import (
-    hash_password,
-    verify_password,
     create_access_token,
     create_refresh_token,
     decode_token,
     decode_token_safe,
+    hash_password,
+    verify_password,
 )
 
 
@@ -19,6 +19,7 @@ def test_hash_and_verify():
 
 def test_access_token_round_trip():
     import uuid
+
     user_id = uuid.uuid4()
     token = create_access_token(user_id)
     payload = decode_token(token)
@@ -28,6 +29,7 @@ def test_access_token_round_trip():
 
 def test_refresh_token_type():
     import uuid
+
     token = create_refresh_token(uuid.uuid4())
     payload = decode_token(token)
     assert payload["type"] == "refresh"
@@ -40,6 +42,7 @@ def test_decode_invalid_token():
 
 def test_access_token_rejected_as_refresh():
     import uuid
+
     token = create_access_token(uuid.uuid4())
     payload = decode_token(token)
     assert payload["type"] != "refresh"

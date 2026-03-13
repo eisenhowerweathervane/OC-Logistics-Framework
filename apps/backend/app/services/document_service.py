@@ -55,9 +55,7 @@ async def create_document(
     return doc
 
 
-async def get_document(
-    db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID
-) -> Document:
+async def get_document(db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID) -> Document:
     result = await db.execute(
         select(Document)
         .where(Document.id == document_id, Document.organization_id == org_id)

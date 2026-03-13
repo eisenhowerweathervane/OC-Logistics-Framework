@@ -1,9 +1,10 @@
 """
 Application middleware: rate limiting, request logging, global error handling.
 """
+
+import logging
 import os
 import time
-import logging
 from collections import defaultdict
 from typing import Callable
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Rate limiting (in-memory token bucket) ───────────────────────────────────
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -35,9 +37,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.exclude_paths = exclude_paths or ["/api/health"]
-        self._buckets: dict[str, dict] = defaultdict(
-            lambda: {"tokens": max_requests, "last_refill": time.monotonic()}
-        )
+        self._buckets: dict[str, dict] = defaultdict(lambda: {"tokens": max_requests, "last_refill": time.monotonic()})
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Disable rate limiting during tests
@@ -71,6 +71,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 # ── Request logging ──────────────────────────────────────────────────────────
 
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Log every request with method, path, status code, and duration."""
 
@@ -97,6 +98,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 # ── Global exception handler ─────────────────────────────────────────────────
+
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register global exception handlers for structured error responses."""

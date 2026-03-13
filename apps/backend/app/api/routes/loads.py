@@ -9,9 +9,9 @@ from app.schemas.loads import (
     AssignmentCreate,
     AssignmentResponse,
     LoadCreate,
+    LoadListItem,
     LoadResponse,
     LoadUpdate,
-    LoadListItem,
     StatusEventCreate,
     StatusEventResponse,
 )
@@ -58,6 +58,4 @@ async def assign_load(load_id: uuid.UUID, body: AssignmentCreate, db: DbDep, use
 
 @router.post("/{load_id}/status-events", response_model=StatusEventResponse, status_code=201)
 async def append_status_event(load_id: uuid.UUID, body: StatusEventCreate, db: DbDep, user: CurrentUser):
-    return await load_service.append_status_event(
-        db, load_id, user.organization_id, body, actor_user_id=user.id
-    )
+    return await load_service.append_status_event(db, load_id, user.organization_id, body, actor_user_id=user.id)

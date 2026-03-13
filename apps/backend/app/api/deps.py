@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_token_safe
 from app.db.base import get_db
-from app.db.models.org import User, UserRole, Role
+from app.db.models.org import User, UserRole
 
 bearer_scheme = HTTPBearer()
 
@@ -22,17 +22,13 @@ async def get_current_user(
 ) -> User:
     payload = decode_token_safe(credentials.credentials)
     if not payload or payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
     user_id_raw = payload.get("sub")
     try:
         user_id = uuid.UUID(user_id_raw)
     except (ValueError, TypeError, AttributeError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
     result = await db.execute(
         select(User)
         .where(User.id == user_id, User.status == "active")
@@ -53,6 +49,7 @@ def require_roles(allowed: list[str]):
         if not user_roles.intersection(allowed):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return user
+
     return _check
 
 

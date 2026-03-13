@@ -4,14 +4,12 @@ Test configuration.
 Uses an in-memory SQLite database (via aiosqlite) so tests run without Postgres or Docker.
 MinIO/S3 calls are mocked via monkeypatching.
 """
+
 import os
-import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator
 
-import pytest
 import pytest_asyncio
-from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -24,11 +22,10 @@ os.environ.setdefault("S3_BUCKET", "test-bucket")
 os.environ.setdefault("S3_ACCESS_KEY", "minioadmin")
 os.environ.setdefault("S3_SECRET_KEY", "minioadmin")
 
+from app.core.security import create_access_token, hash_password
 from app.db.base import Base, get_db
-from app.main import app
-from app.core.security import hash_password, create_access_token
 from app.db.models.org import Organization, Role, User, UserRole
-
+from app.main import app
 
 TEST_ENGINE = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
 TestSession = async_sessionmaker(TEST_ENGINE, class_=AsyncSession, expire_on_commit=False)
@@ -98,9 +95,7 @@ async def client(seeded_db) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = override_db
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         ac.headers["Authorization"] = f"Bearer {token}"
         yield ac
 

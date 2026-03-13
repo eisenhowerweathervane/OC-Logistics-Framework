@@ -9,18 +9,14 @@ from app.db.models.documents import Document, DocumentLink
 from app.db.models.loads import InvoicePacket, Load
 
 
-async def check_readiness(
-    db: AsyncSession, load_id: uuid.UUID, org_id: Optional[uuid.UUID] = None
-) -> InvoicePacket:
+async def check_readiness(db: AsyncSession, load_id: uuid.UUID, org_id: Optional[uuid.UUID] = None) -> InvoicePacket:
     q = select(Load).where(Load.id == load_id)
     if org_id:
         q = q.where(Load.organization_id == org_id)
     load_result = await db.execute(q)
     load = load_result.scalar_one_or_none()
 
-    packet_result = await db.execute(
-        select(InvoicePacket).where(InvoicePacket.load_id == load_id)
-    )
+    packet_result = await db.execute(select(InvoicePacket).where(InvoicePacket.load_id == load_id))
     packet = packet_result.scalar_one_or_none()
 
     if not packet:
@@ -68,7 +64,5 @@ async def check_readiness(
 
 
 async def get_packet(db: AsyncSession, load_id: uuid.UUID) -> Optional[InvoicePacket]:
-    result = await db.execute(
-        select(InvoicePacket).where(InvoicePacket.load_id == load_id)
-    )
+    result = await db.execute(select(InvoicePacket).where(InvoicePacket.load_id == load_id))
     return result.scalar_one_or_none()

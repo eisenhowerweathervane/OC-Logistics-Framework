@@ -1,7 +1,18 @@
 import uuid
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, Time
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    Time,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,14 +69,10 @@ class Document(Base, TimestampMixin):
 
 class DocumentLink(Base):
     __tablename__ = "document_links"
-    __table_args__ = (
-        Index("ix_document_links_entity_type_entity_id", "entity_type", "entity_id"),
-    )
+    __table_args__ = (Index("ix_document_links_entity_type_entity_id", "entity_type", "entity_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    document_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False
-    )
+    document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

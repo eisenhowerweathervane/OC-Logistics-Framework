@@ -9,6 +9,7 @@ The pool is lazily initialised on first use so tests can run without Redis.
 In tests, set REDIS_URL to an invalid value and the enqueue() calls will be
 no-ops (the pool init is skipped when SKIP_TASK_QUEUE=true).
 """
+
 import logging
 import os
 from typing import Any
@@ -23,6 +24,7 @@ async def _get_pool():
     if _pool is None:
         from arq import create_pool
         from arq.connections import RedisSettings
+
         from app.core.config import settings
 
         _pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))

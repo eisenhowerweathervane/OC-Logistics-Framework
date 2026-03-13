@@ -1,6 +1,5 @@
 import json
-import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import DateTime, func
@@ -11,14 +10,13 @@ from app.core.config import settings
 
 # ── Declarative base & mixins ─────────────────────────────────────────────────
 
+
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
@@ -46,12 +44,8 @@ class SessionRegistry:
     """
 
     def __init__(self) -> None:
-        self.prod_engine = create_async_engine(
-            settings.database_url, echo=False, pool_pre_ping=True
-        )
-        self.prod_session = async_sessionmaker(
-            self.prod_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        self.prod_engine = create_async_engine(settings.database_url, echo=False, pool_pre_ping=True)
+        self.prod_session = async_sessionmaker(self.prod_engine, class_=AsyncSession, expire_on_commit=False)
 
         self.sandbox_engine = None
         self.sandbox_session = None
@@ -70,9 +64,7 @@ class SessionRegistry:
     def _init_sandbox_engine(self) -> None:
         url = _sandbox_database_url()
         self.sandbox_engine = create_async_engine(url, echo=False, pool_pre_ping=True)
-        self.sandbox_session = async_sessionmaker(
-            self.sandbox_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        self.sandbox_session = async_sessionmaker(self.sandbox_engine, class_=AsyncSession, expire_on_commit=False)
 
     @property
     def is_sandbox(self) -> bool:

@@ -1,4 +1,5 @@
 """Tests for /api/auth routes."""
+
 import pytest
 from httpx import AsyncClient
 
@@ -6,10 +7,13 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_login_success(unauthed_client: AsyncClient, seeded_db):
     _, user, _ = seeded_db
-    resp = await unauthed_client.post("/api/auth/login", json={
-        "email": "owner@test.com",
-        "password": "password123",
-    })
+    resp = await unauthed_client.post(
+        "/api/auth/login",
+        json={
+            "email": "owner@test.com",
+            "password": "password123",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "access_token" in data
@@ -19,19 +23,25 @@ async def test_login_success(unauthed_client: AsyncClient, seeded_db):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(unauthed_client: AsyncClient, seeded_db):
-    resp = await unauthed_client.post("/api/auth/login", json={
-        "email": "owner@test.com",
-        "password": "wrongpassword",
-    })
+    resp = await unauthed_client.post(
+        "/api/auth/login",
+        json={
+            "email": "owner@test.com",
+            "password": "wrongpassword",
+        },
+    )
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_login_unknown_email(unauthed_client: AsyncClient, seeded_db):
-    resp = await unauthed_client.post("/api/auth/login", json={
-        "email": "nobody@test.com",
-        "password": "password123",
-    })
+    resp = await unauthed_client.post(
+        "/api/auth/login",
+        json={
+            "email": "nobody@test.com",
+            "password": "password123",
+        },
+    )
     assert resp.status_code == 401
 
 
@@ -53,10 +63,13 @@ async def test_me_unauthenticated(unauthed_client: AsyncClient, seeded_db):
 @pytest.mark.asyncio
 async def test_refresh(unauthed_client: AsyncClient, seeded_db):
     # Get tokens via login
-    login = await unauthed_client.post("/api/auth/login", json={
-        "email": "owner@test.com",
-        "password": "password123",
-    })
+    login = await unauthed_client.post(
+        "/api/auth/login",
+        json={
+            "email": "owner@test.com",
+            "password": "password123",
+        },
+    )
     refresh_token = login.json()["refresh_token"]
 
     resp = await unauthed_client.post("/api/auth/refresh", json={"refresh_token": refresh_token})

@@ -1,4 +1,5 @@
 """Tests for analytics and reporting endpoints."""
+
 import pytest
 from httpx import AsyncClient
 
@@ -21,16 +22,23 @@ async def test_dashboard_empty(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_dashboard_with_load(client: AsyncClient):
     """Dashboard reflects active loads."""
-    await client.post("/api/loads", json={
-        "rate_total": 2500,
-        "stops": [{"seq": 1, "stop_type": "pickup", "city": "Dallas", "state": "TX"}],
-    })
+    await client.post(
+        "/api/loads",
+        json={
+            "rate_total": 2500,
+            "stops": [{"seq": 1, "stop_type": "pickup", "city": "Dallas", "state": "TX"}],
+        },
+    )
     # Advance to booked (not closed/archived/quoted)
     loads_resp = await client.get("/api/loads")
     load_id = loads_resp.json()[0]["id"]
-    await client.post(f"/api/loads/{load_id}/status-events", json={
-        "status": "booked", "occurred_at": "2026-03-12T12:00:00Z",
-    })
+    await client.post(
+        f"/api/loads/{load_id}/status-events",
+        json={
+            "status": "booked",
+            "occurred_at": "2026-03-12T12:00:00Z",
+        },
+    )
 
     resp = await client.get("/api/analytics/dashboard")
     assert resp.status_code == 200
@@ -59,9 +67,13 @@ async def test_fleet_utilization_empty(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_fleet_utilization_with_driver(client: AsyncClient):
-    await client.post("/api/drivers", json={
-        "first_name": "Bob", "last_name": "Driver",
-    })
+    await client.post(
+        "/api/drivers",
+        json={
+            "first_name": "Bob",
+            "last_name": "Driver",
+        },
+    )
     resp = await client.get("/api/analytics/fleet-utilization")
     assert resp.status_code == 200
     data = resp.json()
@@ -82,18 +94,27 @@ async def test_fuel_costs_empty(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_fuel_costs_with_purchases(client: AsyncClient):
-    vehicle_resp = await client.post("/api/vehicles", json={
-        "unit_number": "A-1", "make": "Kenworth", "model": "T680", "year": 2023,
-    })
+    vehicle_resp = await client.post(
+        "/api/vehicles",
+        json={
+            "unit_number": "A-1",
+            "make": "Kenworth",
+            "model": "T680",
+            "year": 2023,
+        },
+    )
     vehicle_id = vehicle_resp.json()["id"]
 
-    await client.post("/api/fuel/purchases", json={
-        "vehicle_id": vehicle_id,
-        "purchased_at_local": "2026-03-10T14:00:00",
-        "seller_name": "Love's",
-        "gallons": 120.5,
-        "total_price": 450.00,
-    })
+    await client.post(
+        "/api/fuel/purchases",
+        json={
+            "vehicle_id": vehicle_id,
+            "purchased_at_local": "2026-03-10T14:00:00",
+            "seller_name": "Love's",
+            "gallons": 120.5,
+            "total_price": 450.00,
+        },
+    )
 
     resp = await client.get("/api/analytics/fuel-costs?months_back=1")
     assert resp.status_code == 200

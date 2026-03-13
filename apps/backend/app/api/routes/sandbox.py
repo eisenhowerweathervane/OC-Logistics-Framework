@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi import APIRouter
 
 from app.api.deps import DispatcherUser

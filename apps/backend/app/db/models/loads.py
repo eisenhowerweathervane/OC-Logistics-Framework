@@ -39,9 +39,7 @@ class Load(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    broker_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("brokers.id"), nullable=True
-    )
+    broker_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("brokers.id"), nullable=True)
     shipping_document_number: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_number: Mapped[str | None] = mapped_column(Text, nullable=True)
     commodity: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -54,28 +52,18 @@ class Load(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="quoted")
 
-    stops: Mapped[list["LoadStop"]] = relationship(
-        "LoadStop", back_populates="load", order_by="LoadStop.seq"
-    )
+    stops: Mapped[list["LoadStop"]] = relationship("LoadStop", back_populates="load", order_by="LoadStop.seq")
     assignments: Mapped[list["Assignment"]] = relationship("Assignment", back_populates="load")
-    status_events: Mapped[list["LoadStatusEvent"]] = relationship(
-        "LoadStatusEvent", back_populates="load"
-    )
-    invoice_packet: Mapped["InvoicePacket | None"] = relationship(
-        "InvoicePacket", back_populates="load", uselist=False
-    )
-    receivable: Mapped["Receivable | None"] = relationship(
-        "Receivable", back_populates="load", uselist=False
-    )
+    status_events: Mapped[list["LoadStatusEvent"]] = relationship("LoadStatusEvent", back_populates="load")
+    invoice_packet: Mapped["InvoicePacket | None"] = relationship("InvoicePacket", back_populates="load", uselist=False)
+    receivable: Mapped["Receivable | None"] = relationship("Receivable", back_populates="load", uselist=False)
 
 
 class LoadStop(Base, TimestampMixin):
     __tablename__ = "load_stops"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    load_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False
-    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
     stop_type: Mapped[str] = mapped_column(String(20), nullable=False, default="pickup")
     facility_name: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -97,18 +85,10 @@ class Assignment(Base):
     __tablename__ = "assignments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    load_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False
-    )
-    driver_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False
-    )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
-    trailer_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("trailers.id"), nullable=True
-    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False)
+    driver_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False)
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
+    trailer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("trailers.id"), nullable=True)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     unassigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     dispatcher_user_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -121,19 +101,13 @@ class Assignment(Base):
 
 class LoadStatusEvent(Base):
     __tablename__ = "load_status_events"
-    __table_args__ = (
-        Index("ix_load_status_events_load_id_occurred_at", "load_id", "occurred_at"),
-    )
+    __table_args__ = (Index("ix_load_status_events_load_id_occurred_at", "load_id", "occurred_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    load_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False
-    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     actor_driver_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=True
     )
@@ -150,9 +124,7 @@ class InvoicePacket(Base, TimestampMixin):
     __tablename__ = "invoice_packets"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    load_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("loads.id"), unique=True, nullable=False
-    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="not_ready")
     rate_con_document_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True
@@ -171,17 +143,11 @@ class InvoicePacket(Base, TimestampMixin):
 
 class Receivable(Base, TimestampMixin):
     __tablename__ = "receivables"
-    __table_args__ = (
-        Index("ix_receivables_status_due_date", "status", "due_date"),
-    )
+    __table_args__ = (Index("ix_receivables_status_due_date", "status", "due_date"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    load_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("loads.id"), unique=True, nullable=False
-    )
-    broker_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("brokers.id"), nullable=False
-    )
+    load_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("loads.id"), unique=True, nullable=False)
+    broker_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("brokers.id"), nullable=False)
     invoice_packet_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("invoice_packets.id"), nullable=True
     )

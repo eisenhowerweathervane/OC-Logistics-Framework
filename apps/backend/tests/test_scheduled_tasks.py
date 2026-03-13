@@ -3,8 +3,8 @@
 Since arq scheduled tasks create their own DB sessions, we test the underlying
 service functions that the tasks call, and verify the cron configuration imports.
 """
+
 import pytest
-from datetime import date, timedelta
 from httpx import AsyncClient
 
 
@@ -12,12 +12,15 @@ from httpx import AsyncClient
 async def test_compliance_scan_via_api(client: AsyncClient):
     """Verify the compliance scan endpoint works (used by daily_compliance_digest)."""
     # Create a vehicle (will have no inspection -> critical alert)
-    resp = await client.post("/api/vehicles", json={
-        "unit_number": "BG-1",
-        "make": "Peterbilt",
-        "model": "579",
-        "year": 2021,
-    })
+    resp = await client.post(
+        "/api/vehicles",
+        json={
+            "unit_number": "BG-1",
+            "make": "Peterbilt",
+            "model": "579",
+            "year": 2021,
+        },
+    )
     assert resp.status_code == 201
 
     scan_resp = await client.get("/api/compliance/scan")

@@ -5,8 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 # ── Broker ────────────────────────────────────────────────────────────────────
+
 
 class BrokerCreate(BaseModel):
     legal_name: str = Field(max_length=200)
@@ -37,6 +37,7 @@ class BrokerResponse(BrokerCreate):
 
 
 # ── Driver ────────────────────────────────────────────────────────────────────
+
 
 class DriverCreate(BaseModel):
     first_name: str = Field(max_length=100)
@@ -78,6 +79,7 @@ class DriverResponse(BaseModel):
 
 # ── Vehicle ───────────────────────────────────────────────────────────────────
 
+
 class VehicleCreate(BaseModel):
     unit_number: str = Field(max_length=20)
     make: Optional[str] = Field(default=None, max_length=50)
@@ -118,6 +120,7 @@ class VehicleResponse(BaseModel):
 
 
 # ── Trailer ───────────────────────────────────────────────────────────────────
+
 
 class TrailerCreate(BaseModel):
     trailer_number: str = Field(max_length=20)

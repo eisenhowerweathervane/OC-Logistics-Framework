@@ -6,12 +6,11 @@ Provides:
 - Lane profitability analysis (origin→destination corridor stats)
 - Broker performance rating (average RPM, payment speed, volume)
 """
+
 import uuid
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, select, and_, case
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,9 +25,7 @@ async def score_load(db: AsyncSession, load_id: uuid.UUID, org_id: uuid.UUID) ->
     and a simple profitability grade.
     """
     result = await db.execute(
-        select(Load)
-        .where(Load.id == load_id, Load.organization_id == org_id)
-        .options(selectinload(Load.stops))
+        select(Load).where(Load.id == load_id, Load.organization_id == org_id).options(selectinload(Load.stops))
     )
     load = result.scalar_one_or_none()
     if not load:
@@ -58,7 +55,9 @@ async def score_load(db: AsyncSession, load_id: uuid.UUID, org_id: uuid.UUID) ->
 
     # Get origin/destination from stops
     pickup = next((s for s in sorted(load.stops, key=lambda s: s.seq) if s.stop_type == "pickup"), None)
-    delivery = next((s for s in sorted(load.stops, key=lambda s: s.seq, reverse=True) if s.stop_type == "delivery"), None)
+    delivery = next(
+        (s for s in sorted(load.stops, key=lambda s: s.seq, reverse=True) if s.stop_type == "delivery"), None
+    )
 
     return {
         "load_id": str(load.id),
@@ -100,9 +99,7 @@ async def lane_profitability(
     lanes: dict[str, dict] = {}
 
     for load in loads:
-        stops_result = await db.execute(
-            select(LoadStop).where(LoadStop.load_id == load.id).order_by(LoadStop.seq)
-        )
+        stops_result = await db.execute(select(LoadStop).where(LoadStop.load_id == load.id).order_by(LoadStop.seq))
         stops = list(stops_result.scalars().all())
 
         pickups = [s for s in stops if s.stop_type == "pickup"]
@@ -138,11 +135,13 @@ async def lane_profitability(
     result_list = []
     for lane in lanes.values():
         avg_rpm = round(lane["total_revenue"] / lane["total_miles"], 2) if lane["total_miles"] > 0 else 0
-        result_list.append({
-            **lane,
-            "avg_rate_per_mile": avg_rpm,
-            "total_revenue": round(lane["total_revenue"], 2),
-        })
+        result_list.append(
+            {
+                **lane,
+                "avg_rate_per_mile": avg_rpm,
+                "total_revenue": round(lane["total_revenue"], 2),
+            }
+        )
 
     result_list.sort(key=lambda x: x["load_count"], reverse=True)
     return result_list[:limit]
@@ -160,9 +159,7 @@ async def broker_ratings(
     - Load volume
     """
     # Get brokers for this org
-    brokers_result = await db.execute(
-        select(Broker).where(Broker.organization_id == org_id)
-    )
+    brokers_result = await db.execute(select(Broker).where(Broker.organization_id == org_id))
     brokers = list(brokers_result.scalars().all())
 
     ratings = []
@@ -180,8 +177,8 @@ async def broker_ratings(
         if not loads:
             continue
 
-        total_rate = sum(float(l.rate_total) for l in loads if l.rate_total)
-        total_miles = sum(float(l.miles_loaded) for l in loads if l.miles_loaded)
+        total_rate = sum(float(ld.rate_total) for ld in loads if ld.rate_total)
+        total_miles = sum(float(ld.miles_loaded) for ld in loads if ld.miles_loaded)
         avg_rpm = round(total_rate / total_miles, 2) if total_miles > 0 else 0
 
         # Payment speed from receivables
@@ -211,15 +208,17 @@ async def broker_ratings(
         elif avg_payment_days is not None and avg_payment_days > 45:
             score -= 10  # Penalty for slow payers
 
-        ratings.append({
-            "broker_id": str(broker.id),
-            "broker_name": broker.name,
-            "load_count": len(loads),
-            "total_revenue": round(total_rate, 2),
-            "avg_rate_per_mile": avg_rpm,
-            "avg_payment_days": avg_payment_days,
-            "score": round(score, 1),
-        })
+        ratings.append(
+            {
+                "broker_id": str(broker.id),
+                "broker_name": broker.name,
+                "load_count": len(loads),
+                "total_revenue": round(total_rate, 2),
+                "avg_rate_per_mile": avg_rpm,
+                "avg_payment_days": avg_payment_days,
+                "score": round(score, 1),
+            }
+        )
 
     ratings.sort(key=lambda x: x["score"], reverse=True)
     return ratings[:limit]

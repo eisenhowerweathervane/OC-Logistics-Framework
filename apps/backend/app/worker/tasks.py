@@ -9,8 +9,9 @@ Task types:
   - On-demand: check_invoice_readiness, notify_load_delivered (enqueued by HTTP routes)
   - Scheduled: daily_compliance_digest, weekly_ar_reminder, document_retention_cleanup (cron)
 """
-import uuid
+
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -55,6 +56,7 @@ async def check_invoice_readiness(ctx: dict, load_id: str) -> None:
             if packet.status == "ready":
                 from sqlalchemy import select
                 from sqlalchemy.orm import selectinload
+
                 from app.db.models.loads import Load
 
                 load_result = await db.execute(
@@ -77,9 +79,10 @@ async def notify_load_delivered(ctx: dict, load_id: str, driver_name: str) -> No
     """
     Background task: send Slack notification when a load is delivered.
     """
-    from app.services import slack_service
     from sqlalchemy import select
+
     from app.db.models.loads import Load, LoadStop
+    from app.services import slack_service
 
     load_uuid = uuid.UUID(load_id)
     session_factory = _get_session_factory()
@@ -165,8 +168,8 @@ async def weekly_ar_reminder(ctx: dict) -> None:
     Scheduled task (weekly): check for overdue receivables across all orgs
     and push AR summary to Slack.
     """
-    from app.db.models.org import Organization
     from app.db.models.loads import Load, Receivable
+    from app.db.models.org import Organization
     from app.services import slack_service
 
     session_factory = _get_session_factory()
@@ -181,9 +184,7 @@ async def weekly_ar_reminder(ctx: dict) -> None:
                 q = (
                     select(
                         func.count().label("cnt"),
-                        func.coalesce(
-                            func.sum(Receivable.amount_due - Receivable.amount_paid), 0
-                        ).label("total"),
+                        func.coalesce(func.sum(Receivable.amount_due - Receivable.amount_paid), 0).label("total"),
                         func.min(Receivable.due_date).label("oldest_due"),
                     )
                     .join(Receivable.load)

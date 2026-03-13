@@ -17,12 +17,13 @@ export default function ReceivablesPage() {
     if (!authLoading && !user) { router.replace("/login"); return; }
     if (!user) return;
 
-    setLoading(true);
+    let cancelled = false;
     const params = showOverdueOnly ? "?overdue_only=true" : "";
     api.get<Receivable[]>(`/api/receivables${params}`)
-      .then(setReceivables)
+      .then((data) => { if (!cancelled) setReceivables(data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [user, authLoading, router, showOverdueOnly]);
 
   const now = new Date();

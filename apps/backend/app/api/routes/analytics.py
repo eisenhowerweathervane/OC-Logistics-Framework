@@ -3,7 +3,6 @@ Analytics and reporting routes.
 
 Dashboard summary, revenue reports, fleet utilization, fuel cost summary.
 """
-from typing import Optional
 
 from fastapi import APIRouter
 

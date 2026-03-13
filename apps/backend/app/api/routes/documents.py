@@ -27,9 +27,7 @@ async def presign_upload(body: PresignRequest, user: AnyStaffUser):
 
 @router.post("", response_model=DocumentResponse, status_code=201)
 async def create_document(body: DocumentCreate, db: DbDep, user: AnyStaffUser):
-    return await document_service.create_document(
-        db, user.organization_id, body, actor_user_id=user.id
-    )
+    return await document_service.create_document(db, user.organization_id, body, actor_user_id=user.id)
 
 
 @router.get("", response_model=list[DocumentResponse])

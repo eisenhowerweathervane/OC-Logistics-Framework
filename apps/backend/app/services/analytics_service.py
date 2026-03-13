@@ -6,16 +6,16 @@ Provides:
 - Revenue reports (by period, broker, lane)
 - Fleet utilization metrics
 """
+
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
-from sqlalchemy import func, select, and_, case, extract
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.compliance import FuelPurchase, MaintenanceItem
+from app.db.models.compliance import FuelPurchase
 from app.db.models.fleet import Driver, Vehicle
-from app.db.models.loads import Assignment, Load, LoadStop, Receivable
+from app.db.models.loads import Assignment, Load, Receivable
 
 
 async def dashboard_summary(db: AsyncSession, org_id: uuid.UUID) -> dict:
@@ -123,7 +123,8 @@ async def revenue_by_period(
     cutoff = now - timedelta(days=months_back * 31)
 
     result = await db.execute(
-        select(Load).where(
+        select(Load)
+        .where(
             Load.organization_id == org_id,
             Load.status.in_(["delivered", "invoice_ready", "invoiced", "paid", "closed", "archived"]),
             Load.updated_at >= cutoff,
@@ -154,12 +155,14 @@ async def revenue_by_period(
     result_list = []
     for b in sorted(buckets.values(), key=lambda x: x["period"]):
         avg_rpm = round(b["total_revenue"] / b["total_miles"], 2) if b["total_miles"] > 0 else 0
-        result_list.append({
-            "period": b["period"],
-            "load_count": b["load_count"],
-            "total_revenue": round(b["total_revenue"], 2),
-            "avg_rate_per_mile": avg_rpm,
-        })
+        result_list.append(
+            {
+                "period": b["period"],
+                "load_count": b["load_count"],
+                "total_revenue": round(b["total_revenue"], 2),
+                "avg_rate_per_mile": avg_rpm,
+            }
+        )
 
     return result_list
 
@@ -169,9 +172,7 @@ async def fleet_utilization(db: AsyncSession, org_id: uuid.UUID) -> list[dict]:
     Fleet utilization report: for each driver, show total loads, total miles,
     total revenue, and current status (assigned/idle).
     """
-    drivers_result = await db.execute(
-        select(Driver).where(Driver.organization_id == org_id).order_by(Driver.last_name)
-    )
+    drivers_result = await db.execute(select(Driver).where(Driver.organization_id == org_id).order_by(Driver.last_name))
     drivers = list(drivers_result.scalars().all())
 
     utilization = []
@@ -188,28 +189,32 @@ async def fleet_utilization(db: AsyncSession, org_id: uuid.UUID) -> list[dict]:
         )
         completed_loads = list(loads_result.scalars().all())
 
-        total_revenue = sum(float(l.rate_total) for l in completed_loads if l.rate_total)
-        total_miles = sum(float(l.miles_loaded) for l in completed_loads if l.miles_loaded)
+        total_revenue = sum(float(ld.rate_total) for ld in completed_loads if ld.rate_total)
+        total_miles = sum(float(ld.miles_loaded) for ld in completed_loads if ld.miles_loaded)
 
         # Current assignment
         active_result = await db.execute(
-            select(Assignment).where(
+            select(Assignment)
+            .where(
                 Assignment.driver_id == driver.id,
                 Assignment.unassigned_at.is_(None),
-            ).limit(1)
+            )
+            .limit(1)
         )
         is_assigned = active_result.scalar_one_or_none() is not None
 
-        utilization.append({
-            "driver_id": str(driver.id),
-            "driver_name": f"{driver.first_name} {driver.last_name}",
-            "status": driver.status,
-            "currently_assigned": is_assigned,
-            "completed_loads": len(completed_loads),
-            "total_revenue": round(total_revenue, 2),
-            "total_miles": round(total_miles, 2),
-            "avg_rpm": round(total_revenue / total_miles, 2) if total_miles > 0 else 0,
-        })
+        utilization.append(
+            {
+                "driver_id": str(driver.id),
+                "driver_name": f"{driver.first_name} {driver.last_name}",
+                "status": driver.status,
+                "currently_assigned": is_assigned,
+                "completed_loads": len(completed_loads),
+                "total_revenue": round(total_revenue, 2),
+                "total_miles": round(total_miles, 2),
+                "avg_rpm": round(total_revenue / total_miles, 2) if total_miles > 0 else 0,
+            }
+        )
 
     return utilization
 

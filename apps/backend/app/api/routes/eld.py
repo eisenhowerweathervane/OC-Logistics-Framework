@@ -1,6 +1,7 @@
 """
 ELD day log routes.
 """
+
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -19,17 +20,13 @@ router = APIRouter(prefix="/eld", tags=["eld"])
 @router.post("/days", response_model=EldDayResponse, status_code=201)
 async def create_eld_day(body: EldDayCreate, db: DbDep, user: DispatcherUser):
     driver_result = await db.execute(
-        select(Driver).where(
-            Driver.id == body.driver_id, Driver.organization_id == user.organization_id
-        )
+        select(Driver).where(Driver.id == body.driver_id, Driver.organization_id == user.organization_id)
     )
     if not driver_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found")
 
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     if not vehicle_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")

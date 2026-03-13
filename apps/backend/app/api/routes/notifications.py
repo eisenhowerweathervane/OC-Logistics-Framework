@@ -4,9 +4,9 @@ Notification routes — trigger on-demand Slack and WhatsApp alerts.
 These are internal-facing endpoints (dispatcher/owner only) for sending
 notifications to the dispatch Slack channel and driver WhatsApp.
 """
+
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -14,9 +14,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbDep, DispatcherUser
-from app.db.models.fleet import Driver, Vehicle
-from app.db.models.loads import Assignment, Load, LoadStop, Receivable
 from app.db.models.compliance import AnnualInspection, MaintenanceItem
+from app.db.models.fleet import Driver, Vehicle
+from app.db.models.loads import Load, Receivable
 from app.services import slack_service, whatsapp_service
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -124,6 +124,7 @@ async def send_compliance_alerts(db: DbDep, user: DispatcherUser):
 
 # ── WhatsApp driver notifications ────────────────────────────────────────────
 
+
 class DispatchAlertRequest(BaseModel):
     driver_id: uuid.UUID
     load_id: uuid.UUID
@@ -140,9 +141,7 @@ async def send_dispatch_alert(body: DispatchAlertRequest, db: DbDep, user: Dispa
     """Send a WhatsApp dispatch notification to a driver about a load assignment."""
     # Get driver
     driver_result = await db.execute(
-        select(Driver).where(
-            Driver.id == body.driver_id, Driver.organization_id == user.organization_id
-        )
+        select(Driver).where(Driver.id == body.driver_id, Driver.organization_id == user.organization_id)
     )
     driver = driver_result.scalar_one_or_none()
     if not driver:
@@ -180,9 +179,7 @@ async def send_dispatch_alert(body: DispatchAlertRequest, db: DbDep, user: Dispa
 async def send_docs_reminder(body: DocsReminderRequest, db: DbDep, user: DispatcherUser):
     """Send a WhatsApp reminder to a driver about missing documents."""
     driver_result = await db.execute(
-        select(Driver).where(
-            Driver.id == body.driver_id, Driver.organization_id == user.organization_id
-        )
+        select(Driver).where(Driver.id == body.driver_id, Driver.organization_id == user.organization_id)
     )
     driver = driver_result.scalar_one_or_none()
     if not driver:

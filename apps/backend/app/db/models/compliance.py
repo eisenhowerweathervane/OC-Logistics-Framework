@@ -10,20 +10,14 @@ from app.db.base import Base, TimestampMixin
 
 class EldDay(Base):
     __tablename__ = "eld_days"
-    __table_args__ = (
-        Index("ix_eld_days_driver_id_date_local", "driver_id", "date_local"),
-    )
+    __table_args__ = (Index("ix_eld_days_driver_id_date_local", "driver_id", "date_local"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    driver_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False
-    )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    driver_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("drivers.id"), nullable=False)
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     date_local: Mapped[date] = mapped_column(Date, nullable=False)
     timezone_offset_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     eld_vendor: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -37,17 +31,13 @@ class EldDay(Base):
 
 class FuelPurchase(Base, TimestampMixin):
     __tablename__ = "fuel_purchases"
-    __table_args__ = (
-        Index("ix_fuel_purchases_vehicle_id_purchased_at_local", "vehicle_id", "purchased_at_local"),
-    )
+    __table_args__ = (Index("ix_fuel_purchases_vehicle_id_purchased_at_local", "vehicle_id", "purchased_at_local"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     purchased_at_local: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     seller_name: Mapped[str] = mapped_column(Text, nullable=False)
     seller_address: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -89,32 +79,24 @@ class IftaDistanceByJurisdiction(Base):
     __tablename__ = "ifta_distance_by_jurisdiction"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    ifta_return_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("ifta_returns.id"), nullable=False
-    )
+    ifta_return_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ifta_returns.id"), nullable=False)
     jurisdiction: Mapped[str] = mapped_column(String(10), nullable=False)
     miles: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    ifta_return: Mapped["IftaReturn"] = relationship(
-        "IftaReturn", back_populates="distance_by_jurisdiction"
-    )
+    ifta_return: Mapped["IftaReturn"] = relationship("IftaReturn", back_populates="distance_by_jurisdiction")
 
 
 class IftaFuelByJurisdiction(Base):
     __tablename__ = "ifta_fuel_by_jurisdiction"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    ifta_return_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("ifta_returns.id"), nullable=False
-    )
+    ifta_return_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ifta_returns.id"), nullable=False)
     jurisdiction: Mapped[str] = mapped_column(String(10), nullable=False)
     gallons: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    ifta_return: Mapped["IftaReturn"] = relationship(
-        "IftaReturn", back_populates="fuel_by_jurisdiction"
-    )
+    ifta_return: Mapped["IftaReturn"] = relationship("IftaReturn", back_populates="fuel_by_jurisdiction")
 
 
 class IrpYear(Base, TimestampMixin):
@@ -135,9 +117,7 @@ class IrpDistanceByJurisdiction(Base):
     __tablename__ = "irp_distance_by_jurisdiction"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    irp_year_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("irp_years.id"), nullable=False
-    )
+    irp_year_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("irp_years.id"), nullable=False)
     jurisdiction: Mapped[str] = mapped_column(String(10), nullable=False)
     miles: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     source: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -164,17 +144,13 @@ class UcrRegistration(Base, TimestampMixin):
 
 class MaintenanceItem(Base, TimestampMixin):
     __tablename__ = "maintenance_items"
-    __table_args__ = (
-        Index("ix_maintenance_items_vehicle_id_due_date", "vehicle_id", "due_date"),
-    )
+    __table_args__ = (Index("ix_maintenance_items_vehicle_id_due_date", "vehicle_id", "due_date"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     category: Mapped[str] = mapped_column(Text, nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     due_odometer: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
@@ -189,9 +165,7 @@ class MaintenanceWorkOrder(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     odometer: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
@@ -206,17 +180,13 @@ class MaintenanceWorkOrder(Base, TimestampMixin):
 
 class AnnualInspection(Base, TimestampMixin):
     __tablename__ = "annual_inspections"
-    __table_args__ = (
-        Index("ix_annual_inspections_vehicle_id_expires_at", "vehicle_id", "expires_at"),
-    )
+    __table_args__ = (Index("ix_annual_inspections_vehicle_id_expires_at", "vehicle_id", "expires_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     inspected_at: Mapped[date] = mapped_column(Date, nullable=False)
     inspector_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     report_document_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -232,9 +202,7 @@ class RoadsideInspection(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
-    vehicle_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False
-    )
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=False)
     inspected_at: Mapped[date] = mapped_column(Date, nullable=False)
     report_document_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True

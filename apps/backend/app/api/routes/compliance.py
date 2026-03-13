@@ -2,9 +2,9 @@
 Compliance data entry routes: maintenance items, annual inspections, roadside inspections,
 IFTA quarterly returns, IRP registration, fleet compliance scanning.
 """
+
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
@@ -27,7 +27,6 @@ from app.schemas.compliance import (
     IftaCalculateRequest,
     IftaReturnResponse,
     IftaReturnSummary,
-    IrpDistanceEntry,
     IrpYearCreate,
     IrpYearResponse,
 )
@@ -46,12 +45,11 @@ router = APIRouter(prefix="/compliance", tags=["compliance"])
 
 # ── Maintenance items ─────────────────────────────────────────────────────────
 
+
 @router.post("/maintenance", response_model=MaintenanceItemResponse, status_code=201)
 async def create_maintenance_item(body: MaintenanceItemCreate, db: DbDep, user: DispatcherUser):
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     if not vehicle_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
@@ -90,9 +88,7 @@ async def list_maintenance_items(
 
 
 @router.patch("/maintenance/{item_id}", response_model=MaintenanceItemResponse)
-async def update_maintenance_item(
-    item_id: uuid.UUID, body: MaintenanceItemUpdate, db: DbDep, user: DispatcherUser
-):
+async def update_maintenance_item(item_id: uuid.UUID, body: MaintenanceItemUpdate, db: DbDep, user: DispatcherUser):
     result = await db.execute(
         select(MaintenanceItem).where(
             MaintenanceItem.id == item_id,
@@ -111,12 +107,11 @@ async def update_maintenance_item(
 
 # ── Annual inspections ────────────────────────────────────────────────────────
 
+
 @router.post("/annual-inspections", response_model=AnnualInspectionResponse, status_code=201)
 async def create_annual_inspection(body: AnnualInspectionCreate, db: DbDep, user: DispatcherUser):
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     if not vehicle_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
@@ -153,12 +148,11 @@ async def list_annual_inspections(
 
 # ── Roadside inspections ──────────────────────────────────────────────────────
 
+
 @router.post("/roadside-inspections", response_model=RoadsideInspectionResponse, status_code=201)
 async def create_roadside_inspection(body: RoadsideInspectionCreate, db: DbDep, user: DispatcherUser):
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     if not vehicle_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
@@ -194,6 +188,7 @@ async def list_roadside_inspections(
 
 # ── IFTA quarterly returns ───────────────────────────────────────────────────
 
+
 @router.post("/ifta/calculate", response_model=IftaReturnResponse)
 async def calculate_ifta_return(body: IftaCalculateRequest, db: DbDep, user: DispatcherUser):
     """Calculate (or recalculate) an IFTA quarterly return from fuel purchases and load miles."""
@@ -202,9 +197,7 @@ async def calculate_ifta_return(body: IftaCalculateRequest, db: DbDep, user: Dis
 
     from app.services import compliance_service
 
-    ifta_return = await compliance_service.build_ifta_return(
-        db, user.organization_id, body.year, body.quarter
-    )
+    ifta_return = await compliance_service.build_ifta_return(db, user.organization_id, body.year, body.quarter)
 
     # Reload with relationships
     result = await db.execute(
@@ -225,12 +218,10 @@ async def calculate_ifta_return(body: IftaCalculateRequest, db: DbDep, user: Dis
         status=loaded.status,
         filed_at=loaded.filed_at,
         fuel_by_jurisdiction=[
-            {"jurisdiction": f.jurisdiction, "gallons": f.gallons}
-            for f in loaded.fuel_by_jurisdiction
+            {"jurisdiction": f.jurisdiction, "gallons": f.gallons} for f in loaded.fuel_by_jurisdiction
         ],
         distance_by_jurisdiction=[
-            {"jurisdiction": d.jurisdiction, "miles": d.miles}
-            for d in loaded.distance_by_jurisdiction
+            {"jurisdiction": d.jurisdiction, "miles": d.miles} for d in loaded.distance_by_jurisdiction
         ],
         created_at=loaded.created_at,
         updated_at=loaded.updated_at,
@@ -259,28 +250,26 @@ async def list_ifta_returns(
     for r in returns:
         # Get totals
         fuel_result = await db.execute(
-            select(func.sum(IftaFuelByJurisdiction.gallons)).where(
-                IftaFuelByJurisdiction.ifta_return_id == r.id
-            )
+            select(func.sum(IftaFuelByJurisdiction.gallons)).where(IftaFuelByJurisdiction.ifta_return_id == r.id)
         )
         total_gallons = fuel_result.scalar()
 
         dist_result = await db.execute(
-            select(func.sum(IftaDistanceByJurisdiction.miles)).where(
-                IftaDistanceByJurisdiction.ifta_return_id == r.id
-            )
+            select(func.sum(IftaDistanceByJurisdiction.miles)).where(IftaDistanceByJurisdiction.ifta_return_id == r.id)
         )
         total_miles = dist_result.scalar()
 
-        summaries.append(IftaReturnSummary(
-            id=r.id,
-            year=r.year,
-            quarter=r.quarter,
-            status=r.status,
-            total_gallons=total_gallons,
-            total_miles=total_miles,
-            filed_at=r.filed_at,
-        ))
+        summaries.append(
+            IftaReturnSummary(
+                id=r.id,
+                year=r.year,
+                quarter=r.quarter,
+                status=r.status,
+                total_gallons=total_gallons,
+                total_miles=total_miles,
+                filed_at=r.filed_at,
+            )
+        )
 
     return summaries
 
@@ -316,6 +305,7 @@ async def file_ifta_return(ifta_id: uuid.UUID, db: DbDep, user: DispatcherUser):
 
 # ── IRP registration ────────────────────────────────────────────────────────
 
+
 @router.post("/irp", response_model=IrpYearResponse, status_code=201)
 async def create_irp_year(body: IrpYearCreate, db: DbDep, user: DispatcherUser):
     """Create an IRP registration year record."""
@@ -342,6 +332,7 @@ async def list_irp_years(db: DbDep, user: CurrentUser):
 
 
 # ── Fleet compliance scan ────────────────────────────────────────────────────
+
 
 @router.get("/scan", response_model=list[ComplianceAlert])
 async def scan_compliance(db: DbDep, user: CurrentUser):

@@ -33,6 +33,7 @@ class VehicleComplianceSummary(BaseModel):
 
 # ── IFTA ─────────────────────────────────────────────────────────────────────
 
+
 class IftaJurisdictionEntry(BaseModel):
     jurisdiction: str
     gallons: Optional[Decimal] = None
@@ -75,6 +76,7 @@ class IftaCalculateRequest(BaseModel):
 
 # ── IRP ──────────────────────────────────────────────────────────────────────
 
+
 class IrpYearResponse(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
@@ -101,6 +103,7 @@ class IrpDistanceEntry(BaseModel):
 
 
 # ── Fleet compliance scan ────────────────────────────────────────────────────
+
 
 class ComplianceAlert(BaseModel):
     vehicle_id: str

@@ -7,6 +7,7 @@ Uses the OpenClaw API to deliver messages (OpenClaw handles Baileys/WhatsApp Web
 Degrades gracefully when OPENCLAW_BACKEND_BASE_URL is not configured or
 OpenClaw is unreachable.
 """
+
 import logging
 from typing import Optional
 

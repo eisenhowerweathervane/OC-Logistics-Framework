@@ -9,8 +9,8 @@ Sends proactive alerts to the dispatch Slack channel when key TMS events occur:
 Uses Slack Web API directly via httpx. Degrades gracefully (logs + skips)
 when SLACK_BOT_TOKEN or SLACK_CHANNEL_DISPATCH are not configured.
 """
+
 import logging
-from datetime import datetime
 from typing import Optional
 
 import httpx

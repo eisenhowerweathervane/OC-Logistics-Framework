@@ -4,16 +4,16 @@ Sandbox mode service — creates/drops a sandbox database with demo data.
 The sandbox database is a full copy of the schema (via Alembic migrations)
 populated with rich demo data. Toggling off drops the sandbox database entirely.
 """
+
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
 import asyncpg
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import hash_password
-from app.db.base import SANDBOX_DB_NAME, _sandbox_database_url, registry
+from app.db.base import SANDBOX_DB_NAME, registry
 
 
 def _admin_dsn() -> str:
@@ -28,9 +28,7 @@ def _admin_dsn() -> str:
 async def _db_exists() -> bool:
     conn = await asyncpg.connect(_admin_dsn())
     try:
-        row = await conn.fetchrow(
-            "SELECT 1 FROM pg_database WHERE datname = $1", SANDBOX_DB_NAME
-        )
+        row = await conn.fetchrow("SELECT 1 FROM pg_database WHERE datname = $1", SANDBOX_DB_NAME)
         return row is not None
     finally:
         await conn.close()
@@ -70,8 +68,8 @@ async def create_sandbox_tables() -> None:
     Uses Base.metadata.create_all instead of Alembic to avoid env.py
     overriding the database URL. For a throwaway sandbox this is fine.
     """
-    from app.db.base import Base
     import app.db.models  # noqa: F401 — ensure all models are registered
+    from app.db.base import Base
 
     sandbox_engine = registry.sandbox_engine
     if not sandbox_engine:
@@ -87,12 +85,17 @@ async def seed_sandbox_data(
     caller_org_id: uuid.UUID | None = None,
 ) -> None:
     """Populate the sandbox database with rich demo data."""
-    from app.db.models.org import Organization, Role, User, UserRole
-    from app.db.models.fleet import Broker, Driver, Vehicle, Trailer
+    from app.db.models.compliance import AnnualInspection, FuelPurchase, MaintenanceItem
+    from app.db.models.fleet import Broker, Driver, Trailer, Vehicle
     from app.db.models.loads import (
-        Load, LoadStop, Assignment, LoadStatusEvent, InvoicePacket, Receivable,
+        Assignment,
+        InvoicePacket,
+        Load,
+        LoadStatusEvent,
+        LoadStop,
+        Receivable,
     )
-    from app.db.models.compliance import FuelPurchase, MaintenanceItem, AnnualInspection
+    from app.db.models.org import Organization, Role, User, UserRole
 
     # Use sandbox session
     sessionmaker = registry.get_sessionmaker()
@@ -160,10 +163,38 @@ async def seed_sandbox_data(
 
         # ── Brokers ───────────────────────────────────────────────────────
         broker_data = [
-            {"legal_name": "CH Robinson Worldwide", "dba_name": "CH Robinson", "billing_email": "billing@chrobinson.example.com", "payment_terms_days": 30, "city": "Eden Prairie", "state": "MN"},
-            {"legal_name": "TQL Logistics Inc", "dba_name": "TQL", "billing_email": "ap@tql.example.com", "payment_terms_days": 21, "city": "Cincinnati", "state": "OH"},
-            {"legal_name": "XPO Logistics LLC", "dba_name": "XPO", "billing_email": "invoices@xpo.example.com", "payment_terms_days": 30, "city": "Greenwich", "state": "CT"},
-            {"legal_name": "Echo Global Logistics", "dba_name": "Echo", "billing_email": "payments@echo.example.com", "payment_terms_days": 45, "city": "Chicago", "state": "IL"},
+            {
+                "legal_name": "CH Robinson Worldwide",
+                "dba_name": "CH Robinson",
+                "billing_email": "billing@chrobinson.example.com",
+                "payment_terms_days": 30,
+                "city": "Eden Prairie",
+                "state": "MN",
+            },
+            {
+                "legal_name": "TQL Logistics Inc",
+                "dba_name": "TQL",
+                "billing_email": "ap@tql.example.com",
+                "payment_terms_days": 21,
+                "city": "Cincinnati",
+                "state": "OH",
+            },
+            {
+                "legal_name": "XPO Logistics LLC",
+                "dba_name": "XPO",
+                "billing_email": "invoices@xpo.example.com",
+                "payment_terms_days": 30,
+                "city": "Greenwich",
+                "state": "CT",
+            },
+            {
+                "legal_name": "Echo Global Logistics",
+                "dba_name": "Echo",
+                "billing_email": "payments@echo.example.com",
+                "payment_terms_days": 45,
+                "city": "Chicago",
+                "state": "IL",
+            },
         ]
         brokers: list[Broker] = []
         for bd in broker_data:
@@ -174,9 +205,33 @@ async def seed_sandbox_data(
 
         # ── Drivers ───────────────────────────────────────────────────────
         driver_data = [
-            {"first_name": "Marcus", "last_name": "Johnson", "phone": "+17045559001", "license_state": "NC", "pay_type": "per_mile", "pay_rate": 0.55, "hire_date": date(2023, 3, 15)},
-            {"first_name": "David", "last_name": "Rodriguez", "phone": "+17045559002", "license_state": "SC", "pay_type": "per_mile", "pay_rate": 0.52, "hire_date": date(2024, 1, 8)},
-            {"first_name": "James", "last_name": "Williams", "phone": "+17045559003", "license_state": "GA", "pay_type": "percentage", "pay_rate": 25.0, "hire_date": date(2024, 6, 20)},
+            {
+                "first_name": "Marcus",
+                "last_name": "Johnson",
+                "phone": "+17045559001",
+                "license_state": "NC",
+                "pay_type": "per_mile",
+                "pay_rate": 0.55,
+                "hire_date": date(2023, 3, 15),
+            },
+            {
+                "first_name": "David",
+                "last_name": "Rodriguez",
+                "phone": "+17045559002",
+                "license_state": "SC",
+                "pay_type": "per_mile",
+                "pay_rate": 0.52,
+                "hire_date": date(2024, 1, 8),
+            },
+            {
+                "first_name": "James",
+                "last_name": "Williams",
+                "phone": "+17045559003",
+                "license_state": "GA",
+                "pay_type": "percentage",
+                "pay_rate": 25.0,
+                "hire_date": date(2024, 6, 20),
+            },
         ]
         drivers: list[Driver] = []
         for dd in driver_data:
@@ -187,8 +242,24 @@ async def seed_sandbox_data(
 
         # ── Vehicles ──────────────────────────────────────────────────────
         vehicle_data = [
-            {"unit_number": "T-101", "make": "Freightliner", "model": "Cascadia", "year": 2022, "plate_state": "NC", "plate_number": "TRK-4521", "status": "available"},
-            {"unit_number": "T-102", "make": "Peterbilt", "model": "579", "year": 2023, "plate_state": "NC", "plate_number": "TRK-4522", "status": "available"},
+            {
+                "unit_number": "T-101",
+                "make": "Freightliner",
+                "model": "Cascadia",
+                "year": 2022,
+                "plate_state": "NC",
+                "plate_number": "TRK-4521",
+                "status": "available",
+            },
+            {
+                "unit_number": "T-102",
+                "make": "Peterbilt",
+                "model": "579",
+                "year": 2023,
+                "plate_state": "NC",
+                "plate_number": "TRK-4522",
+                "status": "available",
+            },
         ]
         vehicles: list[Vehicle] = []
         for vd in vehicle_data:
@@ -256,16 +327,22 @@ async def seed_sandbox_data(
             # Stops
             pu_city, pu_state, del_city, del_state = stops_data[i]
             pu_stop = LoadStop(
-                load_id=load.id, seq=1, stop_type="pickup",
+                load_id=load.id,
+                seq=1,
+                stop_type="pickup",
                 facility_name=f"{pu_city} Warehouse",
-                city=pu_city, state=pu_state,
+                city=pu_city,
+                state=pu_state,
                 appt_start=created_at + timedelta(hours=4),
                 appt_end=created_at + timedelta(hours=6),
             )
             del_stop = LoadStop(
-                load_id=load.id, seq=2, stop_type="delivery",
+                load_id=load.id,
+                seq=2,
+                stop_type="delivery",
                 facility_name=f"{del_city} Distribution Center",
-                city=del_city, state=del_state,
+                city=del_city,
+                state=del_state,
                 appt_start=created_at + timedelta(hours=12),
                 appt_end=created_at + timedelta(hours=14),
             )
@@ -315,7 +392,9 @@ async def seed_sandbox_data(
                     broker_id=load.broker_id,
                     invoice_number=f"INV-2026-{str(load.id)[:4].upper()}",
                     invoice_date=now - timedelta(days=20),
-                    due_date=now - timedelta(days=days_offset) if load.status == "invoiced" else now - timedelta(days=10),
+                    due_date=now - timedelta(days=days_offset)
+                    if load.status == "invoiced"
+                    else now - timedelta(days=10),
                     amount_due=float(load.rate_total),
                     amount_paid=float(load.rate_total) if is_paid else 0,
                     status="paid" if is_paid else "open",
@@ -338,11 +417,51 @@ async def seed_sandbox_data(
 
         # ── Fuel purchases ────────────────────────────────────────────────
         fuel_entries = [
-            {"vehicle_id": vehicles[0].id, "seller_name": "Pilot Travel Center", "jurisdiction": "NC", "gallons": 120.5, "unit_price": 3.45, "total_price": 415.73, "purchased_at_local": now - timedelta(days=2)},
-            {"vehicle_id": vehicles[0].id, "seller_name": "Love's Travel Stop", "jurisdiction": "GA", "gallons": 95.2, "unit_price": 3.52, "total_price": 335.10, "purchased_at_local": now - timedelta(days=5)},
-            {"vehicle_id": vehicles[1].id, "seller_name": "Flying J", "jurisdiction": "SC", "gallons": 110.8, "unit_price": 3.39, "total_price": 375.61, "purchased_at_local": now - timedelta(days=3)},
-            {"vehicle_id": vehicles[0].id, "seller_name": "TA Petro", "jurisdiction": "TN", "gallons": 88.3, "unit_price": 3.48, "total_price": 307.28, "purchased_at_local": now - timedelta(days=8)},
-            {"vehicle_id": vehicles[1].id, "seller_name": "Pilot Travel Center", "jurisdiction": "VA", "gallons": 105.0, "unit_price": 3.55, "total_price": 372.75, "purchased_at_local": now - timedelta(days=12)},
+            {
+                "vehicle_id": vehicles[0].id,
+                "seller_name": "Pilot Travel Center",
+                "jurisdiction": "NC",
+                "gallons": 120.5,
+                "unit_price": 3.45,
+                "total_price": 415.73,
+                "purchased_at_local": now - timedelta(days=2),
+            },
+            {
+                "vehicle_id": vehicles[0].id,
+                "seller_name": "Love's Travel Stop",
+                "jurisdiction": "GA",
+                "gallons": 95.2,
+                "unit_price": 3.52,
+                "total_price": 335.10,
+                "purchased_at_local": now - timedelta(days=5),
+            },
+            {
+                "vehicle_id": vehicles[1].id,
+                "seller_name": "Flying J",
+                "jurisdiction": "SC",
+                "gallons": 110.8,
+                "unit_price": 3.39,
+                "total_price": 375.61,
+                "purchased_at_local": now - timedelta(days=3),
+            },
+            {
+                "vehicle_id": vehicles[0].id,
+                "seller_name": "TA Petro",
+                "jurisdiction": "TN",
+                "gallons": 88.3,
+                "unit_price": 3.48,
+                "total_price": 307.28,
+                "purchased_at_local": now - timedelta(days=8),
+            },
+            {
+                "vehicle_id": vehicles[1].id,
+                "seller_name": "Pilot Travel Center",
+                "jurisdiction": "VA",
+                "gallons": 105.0,
+                "unit_price": 3.55,
+                "total_price": 372.75,
+                "purchased_at_local": now - timedelta(days=12),
+            },
         ]
         for fe in fuel_entries:
             fp = FuelPurchase(organization_id=org.id, fuel_type="diesel", **fe)
@@ -350,10 +469,30 @@ async def seed_sandbox_data(
 
         # ── Maintenance items ─────────────────────────────────────────────
         maint_items = [
-            {"vehicle_id": vehicles[0].id, "category": "Oil Change", "due_date": date.today() + timedelta(days=15), "status": "open"},
-            {"vehicle_id": vehicles[0].id, "category": "Tire Rotation", "due_date": date.today() - timedelta(days=5), "status": "overdue"},
-            {"vehicle_id": vehicles[1].id, "category": "Brake Inspection", "due_date": date.today() + timedelta(days=30), "status": "open"},
-            {"vehicle_id": vehicles[1].id, "category": "DOT Annual Inspection", "due_date": date.today() + timedelta(days=60), "status": "open"},
+            {
+                "vehicle_id": vehicles[0].id,
+                "category": "Oil Change",
+                "due_date": date.today() + timedelta(days=15),
+                "status": "open",
+            },
+            {
+                "vehicle_id": vehicles[0].id,
+                "category": "Tire Rotation",
+                "due_date": date.today() - timedelta(days=5),
+                "status": "overdue",
+            },
+            {
+                "vehicle_id": vehicles[1].id,
+                "category": "Brake Inspection",
+                "due_date": date.today() + timedelta(days=30),
+                "status": "open",
+            },
+            {
+                "vehicle_id": vehicles[1].id,
+                "category": "DOT Annual Inspection",
+                "due_date": date.today() + timedelta(days=60),
+                "status": "open",
+            },
         ]
         for mi in maint_items:
             m = MaintenanceItem(organization_id=org.id, **mi)

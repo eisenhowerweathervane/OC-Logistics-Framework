@@ -30,13 +30,14 @@ export default function LoadsPage() {
     }
     if (!user) return;
 
-    setLoading(true);
+    let cancelled = false;
     const params = statusFilter ? `?status=${statusFilter}` : "";
     api
       .get<Load[]>(`/api/loads${params}`)
-      .then(setLoads)
+      .then((data) => { if (!cancelled) setLoads(data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [user, authLoading, router, statusFilter]);
 
   const columns = [

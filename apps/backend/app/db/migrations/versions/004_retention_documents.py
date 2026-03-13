@@ -5,6 +5,7 @@ Revises: 003
 Create Date: 2026-03-11
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -32,7 +33,8 @@ def upgrade() -> None:
 
     # Seed default retention policies
     op.execute("""
-        INSERT INTO retention_policies (id, policy_name, retention_days, legal_basis, deletion_action, hold_enabled) VALUES
+        INSERT INTO retention_policies
+        (id, policy_name, retention_days, legal_basis, deletion_action, hold_enabled) VALUES
         (uuid_generate_v4(), 'eld_supporting_docs', 210, 'FMCSA 49 CFR 395.8', 'archive', false),
         (uuid_generate_v4(), 'ifta_docs', 1460, 'IFTA 4-year requirement', 'archive', false),
         (uuid_generate_v4(), 'irp_docs', 1095, 'IRP 3-year requirement', 'archive', false),

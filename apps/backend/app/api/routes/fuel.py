@@ -1,6 +1,7 @@
 """
 Fuel purchase data entry routes.
 """
+
 import uuid
 from typing import Optional
 
@@ -18,9 +19,7 @@ router = APIRouter(prefix="/fuel", tags=["fuel"])
 @router.post("/purchases", response_model=FuelPurchaseResponse, status_code=201)
 async def create_fuel_purchase(body: FuelPurchaseCreate, db: DbDep, user: DispatcherUser):
     vehicle_result = await db.execute(
-        select(Vehicle).where(
-            Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id
-        )
+        select(Vehicle).where(Vehicle.id == body.vehicle_id, Vehicle.organization_id == user.organization_id)
     )
     if not vehicle_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")

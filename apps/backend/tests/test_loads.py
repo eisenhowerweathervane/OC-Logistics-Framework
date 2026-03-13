@@ -1,7 +1,7 @@
 """Tests for /api/loads routes."""
+
 import pytest
 from httpx import AsyncClient
-
 
 LOAD_BODY = {
     "commodity": "Auto Parts",
@@ -60,6 +60,7 @@ async def test_get_load(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_load_not_found(client: AsyncClient):
     import uuid
+
     resp = await client.get(f"/api/loads/{uuid.uuid4()}")
     assert resp.status_code == 404
 
@@ -79,10 +80,13 @@ async def test_status_event_valid_transition(client: AsyncClient):
     create = await client.post("/api/loads", json=LOAD_BODY)
     load_id = create.json()["id"]
 
-    resp = await client.post(f"/api/loads/{load_id}/status-events", json={
-        "status": "booked",
-        "occurred_at": "2026-09-03T08:00:00Z",
-    })
+    resp = await client.post(
+        f"/api/loads/{load_id}/status-events",
+        json={
+            "status": "booked",
+            "occurred_at": "2026-09-03T08:00:00Z",
+        },
+    )
     assert resp.status_code == 201
     assert resp.json()["status"] == "booked"
 
@@ -93,10 +97,13 @@ async def test_status_event_invalid_transition(client: AsyncClient):
     load_id = create.json()["id"]
 
     # Can't jump from quoted to delivered
-    resp = await client.post(f"/api/loads/{load_id}/status-events", json={
-        "status": "delivered",
-        "occurred_at": "2026-09-03T08:00:00Z",
-    })
+    resp = await client.post(
+        f"/api/loads/{load_id}/status-events",
+        json={
+            "status": "delivered",
+            "occurred_at": "2026-09-03T08:00:00Z",
+        },
+    )
     assert resp.status_code == 422
 
 
@@ -107,14 +114,22 @@ async def test_status_event_full_lifecycle(client: AsyncClient):
     load_id = create.json()["id"]
 
     transitions = [
-        "booked", "dispatched", "arrived_pickup", "loaded",
-        "in_transit", "arrived_delivery", "delivered",
+        "booked",
+        "dispatched",
+        "arrived_pickup",
+        "loaded",
+        "in_transit",
+        "arrived_delivery",
+        "delivered",
     ]
     for new_status in transitions:
-        resp = await client.post(f"/api/loads/{load_id}/status-events", json={
-            "status": new_status,
-            "occurred_at": "2026-09-03T09:00:00Z",
-        })
+        resp = await client.post(
+            f"/api/loads/{load_id}/status-events",
+            json={
+                "status": new_status,
+                "occurred_at": "2026-09-03T09:00:00Z",
+            },
+        )
         assert resp.status_code == 201, f"Failed at {new_status}: {resp.json()}"
 
     final = await client.get(f"/api/loads/{load_id}")

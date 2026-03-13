@@ -9,11 +9,11 @@ from sqlalchemy.orm import selectinload
 
 from app.db.models.fleet import Driver, Vehicle
 from app.db.models.loads import (
+    VALID_TRANSITIONS,
     Assignment,
     Load,
     LoadStatusEvent,
     LoadStop,
-    VALID_TRANSITIONS,
 )
 from app.schemas.loads import (
     AssignmentCreate,
@@ -109,9 +109,7 @@ async def list_loads(
     return list(result.scalars().all())
 
 
-async def update_load(
-    db: AsyncSession, load_id: uuid.UUID, org_id: uuid.UUID, data: LoadUpdate
-) -> Load:
+async def update_load(db: AsyncSession, load_id: uuid.UUID, org_id: uuid.UUID, data: LoadUpdate) -> Load:
     load = await get_load(db, load_id, org_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(load, field, value)
@@ -130,9 +128,7 @@ async def assign_load(
 
     # Validate driver belongs to same org
     if data.driver_id:
-        driver_result = await db.execute(
-            select(Driver).where(Driver.id == data.driver_id)
-        )
+        driver_result = await db.execute(select(Driver).where(Driver.id == data.driver_id))
         driver = driver_result.scalar_one_or_none()
         if not driver or driver.organization_id != org_id:
             raise HTTPException(
@@ -142,9 +138,7 @@ async def assign_load(
 
     # Validate vehicle belongs to same org
     if data.vehicle_id:
-        vehicle_result = await db.execute(
-            select(Vehicle).where(Vehicle.id == data.vehicle_id)
-        )
+        vehicle_result = await db.execute(select(Vehicle).where(Vehicle.id == data.vehicle_id))
         vehicle = vehicle_result.scalar_one_or_none()
         if not vehicle or vehicle.organization_id != org_id:
             raise HTTPException(
@@ -212,6 +206,7 @@ async def append_status_event(
     # Enqueue background tasks when load reaches delivered
     if data.status == "delivered":
         from app.worker.queue import enqueue
+
         await enqueue("check_invoice_readiness", str(load_id))
 
         # Get driver name for Slack notification
@@ -219,9 +214,8 @@ async def append_status_event(
         active_assignments = [a for a in load.assignments if a.unassigned_at is None]
         if active_assignments:
             from app.db.models.fleet import Driver
-            driver_result = await db.execute(
-                select(Driver).where(Driver.id == active_assignments[0].driver_id)
-            )
+
+            driver_result = await db.execute(select(Driver).where(Driver.id == active_assignments[0].driver_id))
             driver = driver_result.scalar_one_or_none()
             if driver:
                 driver_name = f"{driver.first_name} {driver.last_name}"
