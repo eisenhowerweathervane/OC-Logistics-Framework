@@ -1,0 +1,19 @@
+{
+  "id": "oc-logistics",
+  "name": "OC Logistics TMS",
+  "description": "Dispatch and compliance tools for the OC Logistics TMS backend. Provides 15 agent tools for managing loads, drivers, vehicles, invoices, fuel, and maintenance.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "backendUrl": {
+        "type": "string",
+        "description": "OC Logistics backend base URL (overrides OC_BACKEND_URL env var)"
+      },
+      "backendToken": {
+        "type": "string",
+        "description": "JWT bearer token for backend API (overrides OC_BACKEND_TOKEN env var)"
+      }
+    }
+  }
+}

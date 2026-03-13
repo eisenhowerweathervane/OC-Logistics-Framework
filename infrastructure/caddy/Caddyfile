@@ -1,0 +1,21 @@
+:80 {
+    handle /api/* {
+        reverse_proxy backend-api:8000
+    }
+
+    handle /docs {
+        reverse_proxy backend-api:8000
+    }
+
+    handle /redoc {
+        reverse_proxy backend-api:8000
+    }
+
+    handle /openapi.json {
+        reverse_proxy backend-api:8000
+    }
+
+    handle {
+        reverse_proxy frontend:3000
+    }
+}

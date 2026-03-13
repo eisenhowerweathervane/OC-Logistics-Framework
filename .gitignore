@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Build output
+.next/
+dist/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Docker volumes
+postgres_data/
+redis_data/
+minio_data/
+
+# Python
+*.egg-info/
+.eggs/
+
+# Misc
+*.log
+/tmp/

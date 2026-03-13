@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/rajanpatel/.openclaw/agents/main/agent/**)",
+      "Bash(openclaw agent:*)"
+    ]
+  }
+}
