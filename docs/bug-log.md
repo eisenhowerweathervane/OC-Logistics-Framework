@@ -78,6 +78,18 @@ Added `GET /api/meta/system-info` so OpenClaw can discover the system dynamicall
 
 No bugs introduced. All 95 existing tests continue to pass.
 
+## CI/CD Pipeline (2026-03-12)
+
+Added GitHub Actions CI/CD to `eisenhowerweathervane/OC-Logistics-Framework`.
+
+**CI** (`.github/workflows/ci.yml`) — Runs on every push and PR to `main`. Two parallel jobs: backend lint (ruff) + 95 tests, frontend lint (eslint) + build. Backend uses SQLite in-memory (no Docker needed in CI).
+
+**Deploy** (`.github/workflows/deploy.yml`) — Triggers after CI passes on `main`. SSHs into VPS, pulls code, rebuilds Docker Compose stack, runs Alembic migrations. Requires `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` GitHub secrets (deploy workflow skips gracefully until secrets are configured).
+
+**Lint fixes applied** — ruff auto-format (58 files), import sorting (33 fixes), unused import cleanup, ambiguous variable names (`l` → `ld`), React `set-state-in-effect` warnings in loads and receivables pages. Line-length bumped from 100 to 120 in `pyproject.toml`.
+
+All 95 tests passing. CI green on first run after fixes.
+
 ---
 
 ## Fixed

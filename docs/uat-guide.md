@@ -432,3 +432,26 @@ The web dashboard is at **http://localhost:3000**.
 | Analytics | `/analytics` | Revenue, utilization, fuel charts |
 | Scoring | `/scoring` | Lane profitability, broker ratings |
 | Receivables | `/receivables` | AR tracking with overdue highlighting |
+
+---
+
+## 17. CI/CD
+
+GitHub Actions runs automatically on every push and PR to `main`.
+
+### CI Pipeline
+
+Two parallel jobs:
+- **backend-test** — Python 3.12, `ruff check`, 95 pytest tests (SQLite in-memory, no Docker)
+- **frontend-build** — Node 20, `eslint`, `next build`
+
+Check status at: https://github.com/eisenhowerweathervane/OC-Logistics-Framework/actions
+
+### Auto-Deploy
+
+After CI passes on `main`, the deploy workflow SSHs into the VPS and:
+1. `git pull origin main`
+2. `docker compose up --build -d`
+3. `alembic upgrade head`
+
+Requires GitHub secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Deploy skips gracefully until these are configured.
