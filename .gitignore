@@ -32,3 +32,4 @@ minio_data/
 # Misc
 *.log
 /tmp/
+build/
