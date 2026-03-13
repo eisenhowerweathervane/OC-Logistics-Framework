@@ -67,3 +67,27 @@ export const tmsGetInvoicePacket: AnyAgentTool = {
     }
   },
 };
+
+export const tmsRecordPayment: AnyAgentTool = {
+  name: "tms_record_payment",
+  label: "TMS: Record Payment",
+  description:
+    "Record a payment against a receivable. Automatically updates status to 'paid' (full) or 'partial'. " +
+    "Use when a broker check arrives or a payment is confirmed.",
+  parameters: Type.Object({
+    receivable_id: Type.String({ description: "UUID of the receivable" }),
+    amount_paid: Type.String({ description: "Payment amount in dollars, e.g. '2800.00'" }),
+    payment_date: Type.String({ description: "ISO 8601 date of the payment, e.g. '2026-03-15T00:00:00Z'" }),
+    payment_method: Type.Optional(Type.String({ description: "Payment method: check, ach, wire, etc." })),
+    reference_number: Type.Optional(Type.String({ description: "Check number or transaction reference" })),
+  }),
+  execute: async (_id, params) => {
+    try {
+      const { receivable_id, ...body } = params;
+      const receivable = await api.patch(`/api/receivables/${receivable_id}`, body);
+      return ok(receivable);
+    } catch (e) {
+      return err(e);
+    }
+  },
+};

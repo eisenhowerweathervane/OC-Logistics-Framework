@@ -3,7 +3,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class RecordPaymentRequest(BaseModel):
+    amount_paid: Decimal = Field(gt=0, description="Payment amount received")
+    payment_date: datetime
+    payment_method: Optional[str] = Field(default=None, max_length=50)
+    reference_number: Optional[str] = Field(default=None, max_length=100)
 
 
 class InvoicePacketResponse(BaseModel):

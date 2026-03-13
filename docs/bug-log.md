@@ -12,6 +12,26 @@ Status: open | fixed | wontfix
 
 _No open bugs._
 
+## OpenClaw Gap Closure (2026-03-12)
+
+Closed the tool coverage gap identified by OpenClaw's self-assessment. Added 31 new OpenClaw tools (23 → 54 total) wrapping existing backend API endpoints that previously had zero tool coverage. Also added 3 backend enhancements.
+
+**Phase 1 — New OpenClaw tools (0 backend changes):**
+- `apps/openclaw/src/tools/brokers.ts` — 4 tools: list, get, create, update brokers
+- `apps/openclaw/src/tools/trailers.ts` — 4 tools: list, get, create, update trailers
+- `apps/openclaw/src/tools/analytics.ts` — 4 tools: dashboard, revenue report, fleet utilization, fuel costs
+- `apps/openclaw/src/tools/scoring.ts` — 3 tools: score load, lane profitability, broker ratings
+- `apps/openclaw/src/tools/documents.ts` — 4 tools: presign upload, create document, list, download
+- `apps/openclaw/src/tools/compliance.ts` — extended with 11 tools: fuel purchase list, compliance scan, IFTA (calculate/list/file), annual inspections (create/list), roadside inspections (create/list), ELD days (create/list)
+
+**Phase 2 — Backend enhancements:**
+- `tms_list_loads` now supports broker_id, date_from, date_to filters (backend already had these params, tool didn't expose them)
+- `PATCH /api/receivables/{receivable_id}` — new endpoint to record payments against receivables, auto-sets status to paid/partial
+- `tms_record_payment` — new OpenClaw tool for payment recording
+- Driver context (`/api/drivers/{id}/current-context`) now includes `last_eld_date` and `eld_vendor` from the most recent ELD day log
+
+No bugs introduced. All 95 existing tests continue to pass.
+
 ## Code Review — Security & Validation Audit (2026-03-12)
 
 Comprehensive code review performed across all backend services. Found 3 P0 security issues and 5 P1 validation gaps. All fixed and verified with 95 tests passing.

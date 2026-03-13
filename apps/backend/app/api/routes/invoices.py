@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
@@ -7,7 +8,7 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbDep, DispatcherUser
 from app.db.models.loads import Load, Receivable
-from app.schemas.invoices import InvoicePacketResponse, ReceivableResponse
+from app.schemas.invoices import InvoicePacketResponse, ReceivableResponse, RecordPaymentRequest
 from app.services import invoice_service
 
 router = APIRouter(tags=["invoices"])
@@ -60,3 +61,26 @@ async def list_receivables(
     q = q.order_by(Receivable.due_date.asc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(q)
     return list(result.scalars().all())
+
+
+@router.patch("/receivables/{receivable_id}", response_model=ReceivableResponse)
+async def record_payment(receivable_id: uuid.UUID, body: RecordPaymentRequest, db: DbDep, user: DispatcherUser):
+    """Record a payment against a receivable. Automatically sets status to paid/partial."""
+    result = await db.execute(
+        select(Receivable)
+        .join(Receivable.load)
+        .where(Receivable.id == receivable_id, Load.organization_id == user.organization_id)
+    )
+    receivable = result.scalar_one_or_none()
+    if not receivable:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receivable not found")
+
+    receivable.amount_paid = Decimal(str(receivable.amount_paid)) + body.amount_paid
+    if receivable.amount_paid >= Decimal(str(receivable.amount_due)):
+        receivable.status = "paid"
+    else:
+        receivable.status = "partial"
+
+    await db.commit()
+    await db.refresh(receivable)
+    return receivable

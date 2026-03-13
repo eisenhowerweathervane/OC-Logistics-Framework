@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbDep, DispatcherUser
+from app.db.models.compliance import EldDay
 from app.db.models.documents import Document, DocumentLink
 from app.db.models.fleet import Driver, Trailer
 from app.db.models.loads import Assignment, LoadStop
@@ -125,10 +126,21 @@ async def get_driver_context(driver_id: uuid.UUID, db: DbDep, user: CurrentUser)
     )
     assignment = assign_result.scalar_one_or_none()
 
+    # Latest ELD day log
+    eld_result = await db.execute(
+        select(EldDay)
+        .where(EldDay.driver_id == driver_id, EldDay.organization_id == user.organization_id)
+        .order_by(EldDay.date_local.desc())
+        .limit(1)
+    )
+    latest_eld = eld_result.scalar_one_or_none()
+
     if not assignment:
         return DriverContextResponse(
             driver_id=driver_id,
             driver_name=driver.full_name,
+            last_eld_date=latest_eld.date_local if latest_eld else None,
+            eld_vendor=latest_eld.eld_vendor if latest_eld else None,
         )
 
     load = assignment.load
@@ -186,4 +198,6 @@ async def get_driver_context(driver_id: uuid.UUID, db: DbDep, user: CurrentUser)
         next_stop=next_stop_dict,
         missing_document_types=missing,
         trailer_number=trailer_number,
+        last_eld_date=latest_eld.date_local if latest_eld else None,
+        eld_vendor=latest_eld.eld_vendor if latest_eld else None,
     )

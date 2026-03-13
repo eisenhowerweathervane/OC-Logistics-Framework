@@ -173,6 +173,19 @@ curl -s -X POST "$BASE/api/loads/$LOAD/invoice-packet/generate" \
 curl -s "$BASE/api/loads/$LOAD" \
   -H "Authorization: Bearer $TOKEN" | jq .status
 # Expect: "invoice_ready"
+
+# Record a payment against a receivable
+# First get the receivable ID
+RECV=$(curl -s "$BASE/api/receivables?recv_status=open" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.[0].id')
+echo "Receivable: $RECV"
+
+# Record full payment
+curl -s -X PATCH "$BASE/api/receivables/$RECV" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"amount_paid\":2800,\"payment_date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"payment_method\":\"check\",\"reference_number\":\"CHK-1234\"}" | jq
+# Expect: status "paid"
 ```
 
 ---
@@ -455,3 +468,28 @@ After CI passes on `main`, the deploy workflow SSHs into the VPS and:
 3. `alembic upgrade head`
 
 Requires GitHub secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Deploy skips gracefully until these are configured.
+
+---
+
+## 18. OpenClaw Tools (54 total)
+
+OpenClaw has 54 tools across 13 files covering all TMS operations:
+
+| Group | Tools | Description |
+|-------|-------|-------------|
+| Loads | 5 | create, list, get, update status, assign driver |
+| Fleet | 4 | list drivers, list vehicles, driver context, vehicle compliance |
+| Brokers | 4 | list, get, create, update |
+| Trailers | 4 | list, get, create, update |
+| Invoices | 4 | list receivables, generate invoice, get packet, record payment |
+| Documents | 4 | presign upload, create, list, download |
+| Compliance | 5 | log fuel, list fuel, log maintenance, list maintenance, scan |
+| IFTA | 3 | calculate, list returns, file return |
+| Inspections | 4 | annual (create/list), roadside (create/list) |
+| ELD | 2 | create day log, list day logs |
+| Analytics | 4 | dashboard, revenue, fleet utilization, fuel costs |
+| Scoring | 3 | score load, lane profitability, broker ratings |
+| Notifications | 2 | Slack overdue AR, Slack compliance |
+| WhatsApp | 3 | driver by phone, dispatch alert, docs reminder |
+| Sandbox | 2 | status, toggle |
+| Meta | 1 | system info |

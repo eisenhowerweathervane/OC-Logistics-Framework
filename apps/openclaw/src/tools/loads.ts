@@ -58,6 +58,9 @@ export const tmsListLoads: AnyAgentTool = {
           "arrived_delivery, delivered, invoice_ready, invoiced, paid, closed, archived",
       }),
     ),
+    broker_id: Type.Optional(Type.String({ description: "Filter by broker UUID" })),
+    date_from: Type.Optional(Type.String({ description: "ISO 8601 datetime — only loads created on or after this date" })),
+    date_to: Type.Optional(Type.String({ description: "ISO 8601 datetime — only loads created on or before this date" })),
     page: Type.Optional(Type.Number({ description: "Page number, default 1" })),
     page_size: Type.Optional(Type.Number({ description: "Results per page, default 50" })),
   }),
@@ -65,6 +68,9 @@ export const tmsListLoads: AnyAgentTool = {
     try {
       const qs = new URLSearchParams();
       if (params.status) qs.set("status", params.status);
+      if (params.broker_id) qs.set("broker_id", params.broker_id);
+      if (params.date_from) qs.set("date_from", params.date_from);
+      if (params.date_to) qs.set("date_to", params.date_to);
       if (params.page) qs.set("page", String(params.page));
       if (params.page_size) qs.set("page_size", String(params.page_size));
       const loads = await api.get(`/api/loads?${qs}`);

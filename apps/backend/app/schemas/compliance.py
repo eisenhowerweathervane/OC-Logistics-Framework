@@ -14,6 +14,8 @@ class DriverContextResponse(BaseModel):
     next_stop: Optional[dict] = None
     missing_document_types: list[str] = []
     trailer_number: Optional[str] = None
+    last_eld_date: Optional[date] = None
+    eld_vendor: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
