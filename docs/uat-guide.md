@@ -596,3 +596,85 @@ OpenClaw has 77 tools across 16 files covering all TMS operations:
 | WhatsApp | 3 | driver by phone, dispatch alert, docs reminder |
 | Sandbox | 2 | status, toggle |
 | Meta | 1 | system info |
+
+## 22. Security Hardening (Audit 2026-03-14)
+
+### Redis-Backed Rate Limiter
+
+Rate limiting now uses Redis sliding window counters instead of in-memory token buckets. This works correctly across multiple uvicorn workers.
+
+- Same limits: 100 requests per 60 seconds per IP
+- `/api/health` bypassed, `TESTING` env var bypasses
+- Falls back to in-memory if Redis is unavailable
+
+```bash
+# Verify rate limiting is active (won't hit limit with normal use)
+for i in $(seq 1 5); do
+  curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/health
+done
+# All should return 200
+```
+
+### JWT Token Blocklist (Logout)
+
+`POST /api/auth/logout` now revokes the access token server-side via Redis:
+
+```bash
+# Login
+TOKEN=$(curl -s -X POST $BASE/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"owner@example.com","password":"changeme"}' | jq -r .access_token)
+
+# Verify token works
+curl -s $BASE/api/auth/me -H "Authorization: Bearer $TOKEN" | jq .email
+# → "owner@example.com"
+
+# Logout
+curl -s -X POST $BASE/api/auth/logout -H "Authorization: Bearer $TOKEN"
+
+# Verify token is revoked
+curl -s -w "\n%{http_code}" $BASE/api/auth/me -H "Authorization: Bearer $TOKEN"
+# → 401, "Token revoked"
+```
+
+## 23. Frontend Unit Tests
+
+```bash
+cd apps/frontend
+npm install    # installs jest, @testing-library/react, etc.
+npm test       # runs 16 tests across 3 files
+```
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `__tests__/auth.test.tsx` | 4 | Login form: renders inputs, submit calls API, error display |
+| `__tests__/api-client.test.ts` | 5 | Auth headers, token refresh on 401, POST JSON body |
+| `__tests__/loads.test.tsx` | 7 | Table rendering, status badges, filter dropdown, empty state |
+
+## 24. Multi-Tenant Isolation Tests
+
+```bash
+cd apps/backend
+SKIP_TASK_QUEUE=true .venv/bin/python -m pytest tests/test_multi_tenant.py -v
+```
+
+7 tests verify that data created by Organization A is invisible to Organization B:
+
+- Load list isolation (both directions)
+- Load GET by ID → 404 (not 403)
+- Load PATCH by ID → 404
+- Driver list isolation (both directions)
+- Driver GET by ID → 404
+- Driver PATCH by ID → 404
+- Nonexistent UUID → 404 (not 500)
+
+## 25. CI/CD Pipeline
+
+The GitHub Actions CI pipeline (`.github/workflows/ci.yml`) now includes:
+
+| Job | Steps |
+|-----|-------|
+| `backend-test` | Install deps → **pip-audit** → Lint (ruff) → Test (124 pytest) |
+| `frontend-build` | Install deps → Lint (eslint) → Build |
+
+`pip-audit --strict --desc` fails the build on any known vulnerability in Python dependencies.
