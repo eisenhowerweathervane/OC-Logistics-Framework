@@ -143,3 +143,56 @@ class TrailerResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Customer ─────────────────────────────────────────────────────────────────
+
+
+class CustomerCreate(BaseModel):
+    company_name: str = Field(max_length=200)
+    contact_name: Optional[str] = Field(default=None, max_length=200)
+    contact_email: Optional[str] = Field(default=None, max_length=200)
+    contact_phone: Optional[str] = Field(default=None, max_length=20, pattern=r"^\+?[0-9\-\s\(\)]{7,20}$")
+    address_line_1: Optional[str] = Field(default=None, max_length=300)
+    city: Optional[str] = Field(default=None, max_length=100)
+    state: Optional[str] = Field(default=None, max_length=2)
+    zip: Optional[str] = Field(default=None, max_length=10)
+    credit_terms_days: Optional[int] = Field(default=None, ge=0, le=365)
+    preferred_lanes: Optional[str] = Field(default=None, max_length=2000)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class CustomerUpdate(BaseModel):
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address_line_1: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip: Optional[str] = None
+    credit_terms_days: Optional[int] = None
+    preferred_lanes: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CustomerResponse(BaseModel):
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    company_name: str
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address_line_1: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip: Optional[str] = None
+    credit_terms_days: Optional[int] = None
+    preferred_lanes: Optional[str] = None
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

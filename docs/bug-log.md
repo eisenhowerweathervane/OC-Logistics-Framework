@@ -64,6 +64,23 @@ Added driver pay settlement generation and lifecycle management.
 
 9 new tests, 111 total passing.
 
+## Customers / Shippers (2026-03-13 — Phase 3C)
+
+Added customer (direct shipper) management, separate from brokers. Tracks direct shipper relationships with contact info, credit terms, and preferred lanes.
+
+**Backend:**
+- `Customer` model in `app/db/models/fleet.py` with organization_id, company_name, contact_name, contact_email, contact_phone, address, credit_terms_days, preferred_lanes, status, notes
+- CRUD routes in `app/api/routes/customers.py`: `POST /api/customers`, `GET /api/customers`, `GET /api/customers/{customer_id}`, `PATCH /api/customers/{customer_id}`
+- List supports `customer_status` query filter and pagination
+- Nullable `customer_id` FK added to `Load` model for associating loads with direct shippers
+- Migration 010, schemas in `app/schemas/fleet.py`
+
+**OpenClaw:**
+- 4 new tools: `tms_list_customers`, `tms_get_customer`, `tms_create_customer`, `tms_update_customer`
+- Tool count: 64 → 68
+
+6 new tests, 117 total passing.
+
 ## Code Review — Security & Validation Audit (2026-03-12)
 
 Comprehensive code review performed across all backend services. Found 3 P0 security issues and 5 P1 validation gaps. All fixed and verified with 95 tests passing.

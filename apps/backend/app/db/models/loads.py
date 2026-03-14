@@ -40,6 +40,9 @@ class Load(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
     broker_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("brokers.id"), nullable=True)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True
+    )
     shipping_document_number: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_number: Mapped[str | None] = mapped_column(Text, nullable=True)
     commodity: Mapped[str | None] = mapped_column(Text, nullable=True)

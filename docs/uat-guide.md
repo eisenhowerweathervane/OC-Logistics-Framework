@@ -538,9 +538,42 @@ curl -s "$BASE/api/settlements" \
 
 ---
 
-## 20. OpenClaw Tools (64 total)
+## 20. Customers / Shippers
 
-OpenClaw has 64 tools across 15 files covering all TMS operations:
+CRUD for direct shipper relationships (separate from brokers).
+
+```bash
+# Create a customer
+CUSTOMER=$(curl -s -X POST "$BASE/api/customers" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"company_name":"Acme Manufacturing","contact_name":"Jane Smith","contact_email":"jane@acme.com","contact_phone":"555-0200","city":"Columbus","state":"OH","credit_terms_days":30,"preferred_lanes":"OH to PA, OH to MI"}' | jq -r .id)
+echo "Customer: $CUSTOMER"
+
+# List customers
+curl -s "$BASE/api/customers" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Filter by status
+curl -s "$BASE/api/customers?customer_status=active" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Get a single customer
+curl -s "$BASE/api/customers/$CUSTOMER" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Update customer
+curl -s -X PATCH "$BASE/api/customers/$CUSTOMER" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"credit_terms_days":45}' | jq
+```
+
+---
+
+## 21. OpenClaw Tools (68 total)
+
+OpenClaw has 68 tools across 16 files covering all TMS operations:
 
 | Group | Tools | Description |
 |-------|-------|-------------|
@@ -548,6 +581,7 @@ OpenClaw has 64 tools across 15 files covering all TMS operations:
 | Fleet | 4 | list drivers, list vehicles, driver context, vehicle compliance |
 | Brokers | 4 | list, get, create, update |
 | Trailers | 4 | list, get, create, update |
+| Customers | 4 | list, get, create, update |
 | Invoices | 4 | list receivables, generate invoice, get packet, record payment |
 | Documents | 4 | presign upload, create, list, download |
 | Compliance | 5 | log fuel, list fuel, log maintenance, list maintenance, scan |

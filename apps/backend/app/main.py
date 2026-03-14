@@ -9,6 +9,7 @@ from app.api.routes import (
     auth,
     brokers,
     compliance,
+    customers,
     documents,
     drivers,
     eld,
@@ -89,4 +90,5 @@ app.include_router(analytics.router, prefix="/api")
 app.include_router(sandbox.router, prefix="/api")
 app.include_router(accessorials.router, prefix="/api")
 app.include_router(settlements.router, prefix="/api")
+app.include_router(customers.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")

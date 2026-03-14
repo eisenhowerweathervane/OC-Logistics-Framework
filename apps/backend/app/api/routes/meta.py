@@ -62,7 +62,12 @@ API_ROUTE_GROUPS = [
     {"group": "notifications", "prefix": "/api/notifications", "description": "Slack push alerts (AR, compliance)"},
     {"group": "receivables", "prefix": "/api/receivables", "description": "Accounts receivable, payment recording"},
     {"group": "accessorials", "prefix": "/api/accessorials", "description": "Accessorial charges on loads"},
-    {"group": "settlements", "prefix": "/api/settlements", "description": "Driver settlement generation, approval, payment"},
+    {
+        "group": "settlements",
+        "prefix": "/api/settlements",
+        "description": "Driver settlement generation, approval, payment",
+    },
+    {"group": "customers", "prefix": "/api/customers", "description": "Customer (direct shipper) CRUD"},
     {"group": "sandbox", "prefix": "/api/sandbox", "description": "Sandbox mode toggle and status"},
     {"group": "meta", "prefix": "/api/meta", "description": "System info (this endpoint)"},
 ]

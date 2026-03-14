@@ -80,3 +80,24 @@ class Trailer(Base, TimestampMixin):
     vin_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     trailer_type: Mapped[str] = mapped_column(String(30), nullable=False, default="dry_van")
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="available")
+
+
+class Customer(Base, TimestampMixin):
+    __tablename__ = "customers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    company_name: Mapped[str] = mapped_column(Text, nullable=False)
+    contact_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contact_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    address_line_1: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(Text, nullable=True)
+    state: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    zip: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    credit_terms_days: Mapped[int | None] = mapped_column(nullable=True)
+    preferred_lanes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)

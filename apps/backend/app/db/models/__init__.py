@@ -16,7 +16,7 @@ from app.db.models.compliance import (
 from app.db.models.documents import Document, DocumentLink, RetentionPolicy
 from app.db.models.events import AuditEvent, MessageEvent
 from app.db.models.exceptions import Exception_, ExceptionEvent, ExceptionResolution
-from app.db.models.fleet import Broker, Driver, Trailer, Vehicle
+from app.db.models.fleet import Broker, Customer, Driver, Trailer, Vehicle
 from app.db.models.loads import (
     LOAD_STATUSES,
     VALID_TRANSITIONS,
@@ -39,6 +39,7 @@ __all__ = [
     "Broker",
     "Driver",
     "Trailer",
+    "Customer",
     "Vehicle",
     "Load",
     "LoadStop",
