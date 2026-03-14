@@ -121,3 +121,22 @@ export const tmsAddSettlementLine: AnyAgentTool = {
     }
   },
 };
+
+export const tmsUpdateSettlement: AnyAgentTool = {
+  name: "tms_update_settlement",
+  label: "TMS: Update Settlement",
+  description: "Update a settlement's notes or other editable fields on a draft settlement.",
+  parameters: Type.Object({
+    settlement_id: Type.String({ description: "UUID of the settlement to update" }),
+    notes: Type.Optional(Type.String({ description: "Updated notes for the settlement" })),
+  }),
+  execute: async (_id, params) => {
+    try {
+      const { settlement_id, ...body } = params;
+      const settlement = await api.patch(`/api/settlements/${settlement_id}`, body);
+      return ok(settlement);
+    } catch (e) {
+      return err(e);
+    }
+  },
+};

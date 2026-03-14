@@ -81,6 +81,26 @@ Added customer (direct shipper) management, separate from brokers. Tracks direct
 
 6 new tests, 117 total passing.
 
+## OCLF Audit — Round 1 (2026-03-14)
+
+Implemented the three HIGH priority items from the full codebase audit (`specs/audit-2026-03-14.md`).
+
+**Item 1 — 9 Missing OpenClaw Tools:**
+- `apps/openclaw/src/tools/fleet.ts` — 7 new tools: `tmsCreateDriver`, `tmsGetDriver`, `tmsUpdateDriver`, `tmsGetDriverByPhone`, `tmsCreateVehicle`, `tmsGetVehicle`, `tmsUpdateVehicle`
+- `apps/openclaw/src/tools/settlements.ts` — 1 new tool: `tmsUpdateSettlement`
+- `apps/openclaw/src/tools/accessorials.ts` — 1 new tool: `tmsDeleteAccessorial`
+- `apps/openclaw/src/client.ts` — Added `api.delete()` method
+- Tool count: 68 → 77. Updated `index.ts` and `openclaw.plugin.json`.
+
+**Item 2 — Missing `organization_id` Indexes (Migration 011):**
+- `apps/backend/app/db/migrations/versions/011_add_org_id_indexes.py` — 9 new B-tree indexes: 7 on `organization_id` (drivers, vehicles, loads, brokers, trailers, settlements, customers) + 2 on assignment FKs (driver_id, vehicle_id)
+
+**Item 3 — Configurable URLs in meta.py:**
+- `apps/backend/app/core/config.py` — Added `frontend_url` and `api_url` settings (already present with defaults)
+- `apps/backend/app/api/routes/meta.py` — Replaced hardcoded localhost URLs with `settings.frontend_url` and `settings.api_url`
+
+No bugs introduced. All 117 existing tests continue to pass.
+
 ## Code Review — Security & Validation Audit (2026-03-12)
 
 Comprehensive code review performed across all backend services. Found 3 P0 security issues and 5 P1 validation gaps. All fixed and verified with 95 tests passing.

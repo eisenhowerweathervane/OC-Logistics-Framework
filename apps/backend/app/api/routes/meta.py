@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.core.config import settings
 from app.db.base import registry
 
 router = APIRouter(prefix="/meta", tags=["meta"])
@@ -82,11 +83,11 @@ async def system_info():
     return {
         "system": "OC Logistics TMS",
         "frontend": {
-            "url": "http://localhost:3000",
+            "url": settings.frontend_url,
             "pages": FRONTEND_PAGES,
         },
         "api": {
-            "url": "http://localhost:8000",
+            "url": settings.api_url,
             "route_groups": API_ROUTE_GROUPS,
         },
         "services": [

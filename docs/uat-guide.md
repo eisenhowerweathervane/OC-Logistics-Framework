@@ -571,14 +571,14 @@ curl -s -X PATCH "$BASE/api/customers/$CUSTOMER" \
 
 ---
 
-## 21. OpenClaw Tools (68 total)
+## 21. OpenClaw Tools (77 total)
 
-OpenClaw has 68 tools across 16 files covering all TMS operations:
+OpenClaw has 77 tools across 16 files covering all TMS operations:
 
 | Group | Tools | Description |
 |-------|-------|-------------|
 | Loads | 5 | create, list, get, update status, assign driver |
-| Fleet | 4 | list drivers, list vehicles, driver context, vehicle compliance |
+| Fleet | 11 | list/get/create/update drivers, get driver by phone, list/get/create/update vehicles, driver context, vehicle compliance |
 | Brokers | 4 | list, get, create, update |
 | Trailers | 4 | list, get, create, update |
 | Customers | 4 | list, get, create, update |
@@ -588,8 +588,8 @@ OpenClaw has 68 tools across 16 files covering all TMS operations:
 | IFTA | 3 | calculate, list returns, file return |
 | Inspections | 4 | annual (create/list), roadside (create/list) |
 | ELD | 2 | create day log, list day logs |
-| Accessorials | 4 | add, list, update, summary |
-| Settlements | 6 | generate, list, get, approve, pay, add line item |
+| Accessorials | 5 | add, list, update, delete, summary |
+| Settlements | 7 | generate, list, get, update, approve, pay, add line item |
 | Analytics | 4 | dashboard, revenue, fleet utilization, fuel costs |
 | Scoring | 3 | score load, lane profitability, broker ratings |
 | Notifications | 2 | Slack overdue AR, Slack compliance |

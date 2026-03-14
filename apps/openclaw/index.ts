@@ -1,7 +1,7 @@
 /**
  * OC Logistics TMS — OpenClaw Plugin
  *
- * Registers 68 agent tools that give the AI dispatcher direct read/write access
+ * Registers 77 agent tools that give the AI dispatcher direct read/write access
  * to the OC Logistics backend API.
  *
  * Required environment variables (set in the agent's env or via `openclaw config`):
@@ -13,7 +13,9 @@
  *
  * Tool groups:
  *   Loads        — create_load, list_loads, get_load, update_load_status, assign_driver
- *   Fleet        — list_drivers, list_vehicles, driver_context, vehicle_compliance
+ *   Fleet        — list_drivers, list_vehicles, driver_context, vehicle_compliance,
+ *                  create_driver, get_driver, update_driver, get_driver_by_phone,
+ *                  create_vehicle, get_vehicle, update_vehicle
  *   Brokers      — list_brokers, get_broker, create_broker, update_broker
  *   Trailers     — list_trailers, get_trailer, create_trailer, update_trailer
  *   Invoices     — list_receivables, generate_invoice, get_invoice_packet, record_payment
@@ -24,9 +26,11 @@
  *                  create_roadside_inspection, list_roadside_inspections,
  *                  create_eld_day, list_eld_days
  *   Analytics    — dashboard, revenue_report, fleet_utilization, fuel_costs
- *   Accessorials — add_accessorial, list_accessorials, update_accessorial, accessorial_summary
+ *   Accessorials — add_accessorial, list_accessorials, update_accessorial, accessorial_summary,
+ *                  delete_accessorial
  *   Settlements  — generate_settlement, list_settlements, get_settlement,
- *                  approve_settlement, pay_settlement, add_settlement_line
+ *                  approve_settlement, pay_settlement, add_settlement_line,
+ *                  update_settlement
  *   Customers    — list_customers, get_customer, create_customer, update_customer
  *   Scoring      — score_load, lane_profitability, broker_ratings
  *   Notifications — send_overdue_ar_summary, send_compliance_check
@@ -38,7 +42,19 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 
 import { tmsCreateLoad, tmsListLoads, tmsGetLoad, tmsUpdateLoadStatus, tmsAssignDriver } from "./src/tools/loads.js";
-import { tmsListDrivers, tmsListVehicles, tmsDriverContext, tmsVehicleCompliance } from "./src/tools/fleet.js";
+import {
+  tmsListDrivers,
+  tmsListVehicles,
+  tmsDriverContext,
+  tmsVehicleCompliance,
+  tmsCreateDriver,
+  tmsGetDriver,
+  tmsUpdateDriver,
+  tmsGetDriverByPhone,
+  tmsCreateVehicle,
+  tmsGetVehicle,
+  tmsUpdateVehicle,
+} from "./src/tools/fleet.js";
 import { tmsListBrokers, tmsGetBroker, tmsCreateBroker, tmsUpdateBroker } from "./src/tools/brokers.js";
 import { tmsListTrailers, tmsGetTrailer, tmsCreateTrailer, tmsUpdateTrailer } from "./src/tools/trailers.js";
 import { tmsListReceivables, tmsGenerateInvoice, tmsGetInvoicePacket, tmsRecordPayment } from "./src/tools/invoices.js";
@@ -60,7 +76,7 @@ import {
   tmsListEldDays,
 } from "./src/tools/compliance.js";
 import { tmsDashboard, tmsRevenueReport, tmsFleetUtilization, tmsFuelCosts } from "./src/tools/analytics.js";
-import { tmsAddAccessorial, tmsListAccessorials, tmsUpdateAccessorial, tmsAccessorialSummary } from "./src/tools/accessorials.js";
+import { tmsAddAccessorial, tmsListAccessorials, tmsUpdateAccessorial, tmsAccessorialSummary, tmsDeleteAccessorial } from "./src/tools/accessorials.js";
 import {
   tmsGenerateSettlement,
   tmsListSettlements,
@@ -68,6 +84,7 @@ import {
   tmsApproveSettlement,
   tmsPaySettlement,
   tmsAddSettlementLine,
+  tmsUpdateSettlement,
 } from "./src/tools/settlements.js";
 import { tmsListCustomers, tmsGetCustomer, tmsCreateCustomer, tmsUpdateCustomer } from "./src/tools/customers.js";
 import { tmsScoreLoad, tmsLaneProfitability, tmsBrokerRatings } from "./src/tools/scoring.js";
@@ -89,6 +106,13 @@ export default function register(api: OpenClawPluginApi): void {
   api.registerTool(tmsListVehicles);
   api.registerTool(tmsDriverContext);
   api.registerTool(tmsVehicleCompliance);
+  api.registerTool(tmsCreateDriver);
+  api.registerTool(tmsGetDriver);
+  api.registerTool(tmsUpdateDriver);
+  api.registerTool(tmsGetDriverByPhone);
+  api.registerTool(tmsCreateVehicle);
+  api.registerTool(tmsGetVehicle);
+  api.registerTool(tmsUpdateVehicle);
 
   // Brokers
   api.registerTool(tmsListBrokers);
@@ -141,6 +165,7 @@ export default function register(api: OpenClawPluginApi): void {
   api.registerTool(tmsListAccessorials);
   api.registerTool(tmsUpdateAccessorial);
   api.registerTool(tmsAccessorialSummary);
+  api.registerTool(tmsDeleteAccessorial);
 
   // Settlements & driver pay
   api.registerTool(tmsGenerateSettlement);
@@ -149,6 +174,7 @@ export default function register(api: OpenClawPluginApi): void {
   api.registerTool(tmsApproveSettlement);
   api.registerTool(tmsPaySettlement);
   api.registerTool(tmsAddSettlementLine);
+  api.registerTool(tmsUpdateSettlement);
 
   // Analytics & reporting
   api.registerTool(tmsDashboard);
@@ -183,5 +209,5 @@ export default function register(api: OpenClawPluginApi): void {
   // System meta
   api.registerTool(tmsSystemInfo);
 
-  api.logger.info(`OC Logistics plugin loaded — ${68} tools registered`);
+  api.logger.info(`OC Logistics plugin loaded — ${77} tools registered`);
 }

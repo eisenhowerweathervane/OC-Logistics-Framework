@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     seed_owner_email: str = "owner@example.com"
     seed_owner_password: str = "changeme"
 
+    # URLs
+    frontend_url: str = "http://localhost:3000"
+    api_url: str = "http://localhost:8000"
+
     # CORS
     allowed_origins: str = "http://localhost:3000,http://localhost:8000,http://localhost"
 

@@ -89,3 +89,22 @@ export const tmsAccessorialSummary: AnyAgentTool = {
     }
   },
 };
+
+export const tmsDeleteAccessorial: AnyAgentTool = {
+  name: "tms_delete_accessorial",
+  label: "TMS: Delete Accessorial Charge",
+  description:
+    "Delete an accessorial charge. Use when a charge was added in error or is no longer applicable. " +
+    "This cannot be undone.",
+  parameters: Type.Object({
+    charge_id: Type.String({ description: "UUID of the accessorial charge to delete" }),
+  }),
+  execute: async (_id, params) => {
+    try {
+      await api.delete(`/api/accessorials/${params.charge_id}`);
+      return ok({ deleted: true, charge_id: params.charge_id });
+    } catch (e) {
+      return err(e);
+    }
+  },
+};
