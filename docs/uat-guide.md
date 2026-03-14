@@ -455,7 +455,7 @@ GitHub Actions runs automatically on every push and PR to `main`.
 ### CI Pipeline
 
 Two parallel jobs:
-- **backend-test** — Python 3.12, `ruff check`, 95 pytest tests (SQLite in-memory, no Docker)
+- **backend-test** — Python 3.12, `ruff check`, 111 pytest tests (SQLite in-memory, no Docker)
 - **frontend-build** — Node 20, `eslint`, `next build`
 
 Check status at: https://github.com/eisenhowerweathervane/OC-Logistics-Framework/actions
@@ -471,9 +471,76 @@ Requires GitHub secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Deploy skips gra
 
 ---
 
-## 18. OpenClaw Tools (54 total)
+## 18. Accessorial Charges
 
-OpenClaw has 54 tools across 13 files covering all TMS operations:
+Track extra charges on top of the base rate per load.
+
+```bash
+# Add detention charge to a load
+curl -s -X POST "$BASE/api/loads/$LOAD/accessorials" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"charge_type":"detention","amount":"150.00","description":"2 hours waiting at shipper"}' | jq
+
+# Add lumper fee
+curl -s -X POST "$BASE/api/loads/$LOAD/accessorials" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"charge_type":"lumper","amount":"75.00"}' | jq
+
+# List accessorials for a load
+curl -s "$BASE/api/loads/$LOAD/accessorials" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Summary by type (counts + totals)
+curl -s "$BASE/api/accessorials/summary" \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+---
+
+## 19. Driver Settlements
+
+Generate, review, and pay driver settlements.
+
+```bash
+# Generate a settlement for the driver covering a date range
+SETTLEMENT=$(curl -s -X POST "$BASE/api/settlements/generate" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"driver_id\":\"$DRIVER\",\"period_start\":\"2026-03-01\",\"period_end\":\"2026-03-15\"}" | jq -r .id)
+echo "Settlement: $SETTLEMENT"
+
+# View settlement detail with line items
+curl -s "$BASE/api/settlements/$SETTLEMENT" \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Add a fuel advance deduction
+curl -s -X POST "$BASE/api/settlements/$SETTLEMENT/lines" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"line_type":"fuel_advance","amount":"200.00","description":"Fuel advance 3/10"}' | jq
+
+# Approve the settlement
+curl -s -X POST "$BASE/api/settlements/$SETTLEMENT/approve" \
+  -H "Authorization: Bearer $TOKEN" | jq .status
+# Expect: "approved"
+
+# Mark as paid
+curl -s -X POST "$BASE/api/settlements/$SETTLEMENT/pay" \
+  -H "Authorization: Bearer $TOKEN" | jq .status
+# Expect: "paid"
+
+# List all settlements
+curl -s "$BASE/api/settlements" \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+---
+
+## 20. OpenClaw Tools (64 total)
+
+OpenClaw has 64 tools across 15 files covering all TMS operations:
 
 | Group | Tools | Description |
 |-------|-------|-------------|
@@ -487,6 +554,8 @@ OpenClaw has 54 tools across 13 files covering all TMS operations:
 | IFTA | 3 | calculate, list returns, file return |
 | Inspections | 4 | annual (create/list), roadside (create/list) |
 | ELD | 2 | create day log, list day logs |
+| Accessorials | 4 | add, list, update, summary |
+| Settlements | 6 | generate, list, get, approve, pay, add line item |
 | Analytics | 4 | dashboard, revenue, fleet utilization, fuel costs |
 | Scoring | 3 | score load, lane profitability, broker ratings |
 | Notifications | 2 | Slack overdue AR, Slack compliance |

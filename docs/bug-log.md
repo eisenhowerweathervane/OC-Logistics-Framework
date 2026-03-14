@@ -32,6 +32,38 @@ Closed the tool coverage gap identified by OpenClaw's self-assessment. Added 31 
 
 No bugs introduced. All 95 existing tests continue to pass.
 
+## Accessorial Charges (2026-03-13 — Phase 3A)
+
+Added per-load accessorial charge tracking: detention, layover, TONU, lumper, fuel surcharge, toll, and other charges billed on top of the base rate.
+
+**Backend:**
+- `AccessorialCharge` model in `app/db/models/loads.py` with org_id, load_id, charge_type, amount, status (pending/approved/invoiced/paid), occurred_at, approved_by, notes
+- CRUD + summary routes in `app/api/routes/accessorials.py`: `POST /api/loads/{load_id}/accessorials`, `GET /api/loads/{load_id}/accessorials`, `PATCH /api/accessorials/{charge_id}`, `DELETE /api/accessorials/{charge_id}`, `GET /api/accessorials/summary`
+- Summary endpoint groups by charge_type with counts and totals, optional load_id filter
+- Migration 008, schemas in `app/schemas/loads.py`
+
+**OpenClaw:**
+- 4 new tools: `tms_add_accessorial`, `tms_list_accessorials`, `tms_update_accessorial`, `tms_accessorial_summary`
+
+7 new tests, 102 total passing.
+
+## Driver Settlements (2026-03-13 — Phase 3B)
+
+Added driver pay settlement generation and lifecycle management.
+
+**Backend:**
+- `Settlement` and `SettlementLineItem` models in `app/db/models/settlements.py`
+- Settlement service (`app/services/settlement_service.py`) generates draft settlements from delivered loads using driver's `pay_type`/`pay_rate` (per_mile, percentage, flat_rate). Includes approved accessorial charges in revenue calculation.
+- Routes in `app/api/routes/settlements.py`: generate, list, get detail, update notes, approve, mark paid, add manual line items (fuel advances, deductions, bonuses)
+- Draft → approved → paid workflow with status guards (409 on invalid transitions)
+- Migration 009
+
+**OpenClaw:**
+- 6 new tools: `tms_generate_settlement`, `tms_list_settlements`, `tms_get_settlement`, `tms_approve_settlement`, `tms_pay_settlement`, `tms_add_settlement_line`
+- TOOLS.md updated: 22 → 64 tools documented
+
+9 new tests, 111 total passing.
+
 ## Code Review — Security & Validation Audit (2026-03-12)
 
 Comprehensive code review performed across all backend services. Found 3 P0 security issues and 5 P1 validation gaps. All fixed and verified with 95 tests passing.
