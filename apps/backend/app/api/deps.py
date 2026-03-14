@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.security import decode_token_safe
+from app.core.security import decode_token_safe, is_token_blocklisted
 from app.db.base import get_db
 from app.db.models.org import User, UserRole
 
@@ -20,9 +20,13 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
     db: DbDep,
 ) -> User:
-    payload = decode_token_safe(credentials.credentials)
+    token = credentials.credentials
+    payload = decode_token_safe(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    if await is_token_blocklisted(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
 
     user_id_raw = payload.get("sub")
     try:

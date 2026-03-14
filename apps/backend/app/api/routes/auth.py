@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbDep
 from app.core.security import (
+    blocklist_token,
     create_access_token,
     create_refresh_token,
     decode_token_safe,
@@ -13,6 +16,8 @@ from app.core.security import (
 )
 from app.db.models.org import User, UserRole
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse, UserResponse
+
+bearer_scheme = HTTPBearer()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -57,9 +62,11 @@ async def refresh(body: RefreshRequest, db: DbDep):
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(user: CurrentUser):
-    # Stateless JWT — client discards token. Future: add token blocklist via Redis.
-    pass
+async def logout(
+    user: CurrentUser,
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
+):
+    await blocklist_token(credentials.credentials)
 
 
 @router.get("/me", response_model=UserResponse)

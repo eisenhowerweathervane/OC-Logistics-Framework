@@ -20,6 +20,12 @@ jobs:
         working-directory: apps/backend
         run: pip install -e ".[dev]"
 
+      - name: Security audit
+        working-directory: apps/backend
+        run: |
+          pip install pip-audit
+          pip-audit --strict --desc
+
       - name: Lint
         working-directory: apps/backend
         run: ruff check .

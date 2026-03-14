@@ -2,22 +2,26 @@
 
 Revision ID: 010
 Revises: 009
+Create Date: 2026-03-13
+
 """
 
-from alembic import op
+from typing import Sequence, Union
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
-revision = "010"
-down_revision = "009"
-branch_labels = None
-depends_on = None
+revision: str = "010"
+down_revision: Union[str, None] = "009"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
     op.create_table(
         "customers",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
         sa.Column("organization_id", UUID(as_uuid=True), sa.ForeignKey("organizations.id"), nullable=False),
         sa.Column("company_name", sa.Text, nullable=False),
         sa.Column("contact_name", sa.Text, nullable=True),
@@ -31,8 +35,8 @@ def upgrade() -> None:
         sa.Column("preferred_lanes", sa.Text, nullable=True),
         sa.Column("status", sa.String(20), nullable=False, server_default="active"),
         sa.Column("notes", sa.Text, nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
     )
     op.create_index("ix_customers_org_id", "customers", ["organization_id"])
 

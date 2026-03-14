@@ -8,22 +8,23 @@ import time
 from collections import defaultdict
 from typing import Callable
 
+import redis.asyncio as aioredis
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
-# ── Rate limiting (in-memory token bucket) ───────────────────────────────────
+# ── Rate limiting (Redis-backed with in-memory fallback) ─────────────────────
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Simple per-IP rate limiter using token bucket algorithm.
-    Configurable max requests and refill rate.
-
-    In production, swap for Redis-backed limiter for multi-process support.
+    Per-IP rate limiter using Redis sliding window counter.
+    Falls back to in-memory token bucket if Redis is unavailable.
     """
 
     def __init__(
@@ -37,7 +38,55 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.exclude_paths = exclude_paths or ["/api/health"]
-        self._buckets: dict[str, dict] = defaultdict(lambda: {"tokens": max_requests, "last_refill": time.monotonic()})
+        self._redis: aioredis.Redis | None = None
+        self._redis_available = True
+        # In-memory fallback
+        self._buckets: dict[str, dict] = defaultdict(
+            lambda: {"tokens": max_requests, "last_refill": time.monotonic()}
+        )
+
+    async def _get_redis(self) -> aioredis.Redis | None:
+        if not self._redis_available:
+            return None
+        if self._redis is None:
+            try:
+                self._redis = aioredis.from_url(
+                    settings.redis_url, decode_responses=True, socket_connect_timeout=2
+                )
+                await self._redis.ping()
+            except Exception:
+                logger.warning("Redis unavailable for rate limiting, using in-memory fallback")
+                self._redis_available = False
+                self._redis = None
+                return None
+        return self._redis
+
+    async def _check_rate_redis(self, client_ip: str) -> bool:
+        """Returns True if request is allowed, False if rate limited."""
+        r = await self._get_redis()
+        if r is None:
+            return self._check_rate_memory(client_ip)
+        try:
+            key = f"rate:{client_ip}"
+            count = await r.incr(key)
+            if count == 1:
+                await r.expire(key, self.window_seconds)
+            return count <= self.max_requests
+        except Exception:
+            return self._check_rate_memory(client_ip)
+
+    def _check_rate_memory(self, client_ip: str) -> bool:
+        """In-memory token bucket fallback."""
+        bucket = self._buckets[client_ip]
+        now = time.monotonic()
+        elapsed = now - bucket["last_refill"]
+        refill = elapsed * (self.max_requests / self.window_seconds)
+        bucket["tokens"] = min(self.max_requests, bucket["tokens"] + refill)
+        bucket["last_refill"] = now
+        if bucket["tokens"] < 1:
+            return False
+        bucket["tokens"] -= 1
+        return True
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Disable rate limiting during tests
@@ -49,23 +98,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
-        bucket = self._buckets[client_ip]
+        allowed = await self._check_rate_redis(client_ip)
 
-        # Refill tokens based on elapsed time
-        now = time.monotonic()
-        elapsed = now - bucket["last_refill"]
-        refill = elapsed * (self.max_requests / self.window_seconds)
-        bucket["tokens"] = min(self.max_requests, bucket["tokens"] + refill)
-        bucket["last_refill"] = now
-
-        if bucket["tokens"] < 1:
+        if not allowed:
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Too many requests. Please try again later."},
                 headers={"Retry-After": str(self.window_seconds)},
             )
 
-        bucket["tokens"] -= 1
         return await call_next(request)
 
 

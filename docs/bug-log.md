@@ -81,6 +81,37 @@ Added customer (direct shipper) management, separate from brokers. Tracks direct
 
 6 new tests, 117 total passing.
 
+## OCLF Audit — Round 2 (2026-03-14)
+
+Implemented MEDIUM and LOW priority items from the codebase audit.
+
+**Item 5 — Redis-Backed Rate Limiter:**
+- `apps/backend/app/core/middleware.py` — Replaced in-memory token bucket with Redis sliding window counter (`INCR` + `EXPIRE`). Falls back to in-memory if Redis is unavailable. Same limits (100 req/60s per IP), same `/api/health` and `TESTING` bypasses.
+
+**Item 6 — JWT Token Blocklist for Logout:**
+- `apps/backend/app/core/security.py` — Added `blocklist_token()` and `is_token_blocklisted()` using Redis `SETEX` with TTL matching remaining token lifetime. Token identified by SHA-256 hash. Skipped when `TESTING=true` or Redis unavailable.
+- `apps/backend/app/api/routes/auth.py` — Logout now calls `blocklist_token()` with the bearer token.
+- `apps/backend/app/api/deps.py` — `get_current_user` checks blocklist after token decode, returns 401 "Token revoked" if found.
+
+**Item 9 — Standardize Migration 010:**
+- `apps/backend/app/db/migrations/versions/010_customers.py` — Added type annotations (`str`, `Union`), `Create Date` header, `server_default=sa.text("uuid_generate_v4()")` on `id` column, changed `sa.func.now()` to `sa.text("now()")` for created_at/updated_at.
+
+**Item 7 — Frontend Unit Tests:**
+- `apps/frontend/jest.config.ts` — Jest config using `next/jest` with jsdom environment
+- `apps/frontend/jest.setup.ts` — Imports `@testing-library/jest-dom`
+- `apps/frontend/__tests__/auth.test.tsx` — 4 tests: renders inputs, renders button, calls login API on submit, shows error on failure
+- `apps/frontend/__tests__/api-client.test.ts` — 5 tests: auth header, no auth header, token refresh on 401, throws on failed refresh, POST sends JSON body
+- `apps/frontend/__tests__/loads.test.tsx` — 7 tests: heading, new load link, table data, status badges, filter dropdown, filter API call, empty state
+- Dev dependencies added to `package.json`: jest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jest-environment-jsdom, @types/jest, ts-node
+
+**Item 8 — Multi-Tenant Isolation Test:**
+- `apps/backend/tests/test_multi_tenant.py` — 7 tests across loads and drivers: list isolation (both directions), GET by ID returns 404 (not 403), PATCH returns 404, nonexistent UUID returns 404
+
+**Item 10 — pip-audit in CI:**
+- `.github/workflows/ci.yml` — Added `pip-audit --strict --desc` step after dependency install in backend job
+
+No bugs introduced. 124 backend tests passing (117 existing + 7 new multi-tenant).
+
 ## OCLF Audit — Round 1 (2026-03-14)
 
 Implemented the three HIGH priority items from the full codebase audit (`specs/audit-2026-03-14.md`).
