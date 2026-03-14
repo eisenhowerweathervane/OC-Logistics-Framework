@@ -12,6 +12,16 @@ Status: open | fixed | wontfix
 
 _No open bugs._
 
+## Audit Follow-Up Fixes (2026-03-14)
+
+**P3 · Redis retry cooldown** — `apps/backend/app/core/middleware.py` and `apps/backend/app/core/security.py`: the Redis unavailability flag was sticky (`_redis_available = False` never reset). If Redis recovered after an initial failure, the app stayed on in-memory fallback until restart. Fixed by replacing the boolean flag with a 60-second retry cooldown (`_redis_retry_after` timestamp). After 60s the next request retries Redis.
+
+**P3 · Intentional OpenClaw endpoint gaps (documented, not bugs):**
+- `PATCH /api/loads/{load_id}` — loads use state-machine transitions via `tms_update_load_status` instead of generic PATCH
+- `PATCH /api/compliance/maintenance/{item_id}` — maintenance items are create/list only via OpenClaw by design
+
+**P3 · passlib deprecation warning** — `passlib.utils` imports `crypt` which is deprecated in Python 3.12 and removed in 3.13. Not actionable until passlib releases an update or the project migrates to a different hashing library (e.g. `bcrypt` directly).
+
 ## OpenClaw Gap Closure (2026-03-12)
 
 Closed the tool coverage gap identified by OpenClaw's self-assessment. Added 31 new OpenClaw tools (23 → 54 total) wrapping existing backend API endpoints that previously had zero tool coverage. Also added 3 backend enhancements.

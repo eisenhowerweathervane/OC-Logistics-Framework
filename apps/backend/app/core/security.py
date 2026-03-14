@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
@@ -52,7 +53,7 @@ def decode_token_safe(token: str) -> dict[str, Any] | None:
 # ── Token blocklist (Redis-backed) ──────────────────────────────────────────
 
 _blocklist_redis: aioredis.Redis | None = None
-_blocklist_available = True
+_blocklist_retry_after: float = 0  # monotonic timestamp; retry Redis after this
 
 
 def _token_hash(token: str) -> str:
@@ -60,8 +61,8 @@ def _token_hash(token: str) -> str:
 
 
 async def _get_blocklist_redis() -> aioredis.Redis | None:
-    global _blocklist_redis, _blocklist_available
-    if not _blocklist_available:
+    global _blocklist_redis, _blocklist_retry_after
+    if time.monotonic() < _blocklist_retry_after:
         return None
     if _blocklist_redis is None:
         try:
@@ -71,7 +72,7 @@ async def _get_blocklist_redis() -> aioredis.Redis | None:
             await _blocklist_redis.ping()
         except Exception:
             logger.warning("Redis unavailable for token blocklist")
-            _blocklist_available = False
+            _blocklist_retry_after = time.monotonic() + 60
             _blocklist_redis = None
             return None
     return _blocklist_redis

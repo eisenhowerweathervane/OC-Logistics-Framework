@@ -39,14 +39,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window_seconds = window_seconds
         self.exclude_paths = exclude_paths or ["/api/health"]
         self._redis: aioredis.Redis | None = None
-        self._redis_available = True
+        self._redis_retry_after: float = 0  # monotonic timestamp; retry Redis after this
         # In-memory fallback
         self._buckets: dict[str, dict] = defaultdict(
             lambda: {"tokens": max_requests, "last_refill": time.monotonic()}
         )
 
     async def _get_redis(self) -> aioredis.Redis | None:
-        if not self._redis_available:
+        if time.monotonic() < self._redis_retry_after:
             return None
         if self._redis is None:
             try:
@@ -56,7 +56,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 await self._redis.ping()
             except Exception:
                 logger.warning("Redis unavailable for rate limiting, using in-memory fallback")
-                self._redis_available = False
+                self._redis_retry_after = time.monotonic() + 60
                 self._redis = None
                 return None
         return self._redis
