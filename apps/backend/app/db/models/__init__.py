@@ -29,6 +29,7 @@ from app.db.models.loads import (
     Receivable,
 )
 from app.db.models.org import Organization, Role, User, UserRole
+from app.db.models.settlements import Settlement, SettlementLineItem
 
 __all__ = [
     "Organization",
@@ -68,4 +69,6 @@ __all__ = [
     "Exception_",
     "ExceptionEvent",
     "ExceptionResolution",
+    "Settlement",
+    "SettlementLineItem",
 ]

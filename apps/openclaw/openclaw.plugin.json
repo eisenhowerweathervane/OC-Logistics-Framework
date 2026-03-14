@@ -1,7 +1,7 @@
 {
   "id": "oc-logistics",
   "name": "OC Logistics TMS",
-  "description": "Dispatch and compliance tools for the OC Logistics TMS backend. Provides 15 agent tools for managing loads, drivers, vehicles, invoices, fuel, and maintenance.",
+  "description": "Dispatch and compliance tools for the OC Logistics TMS backend. Provides 64 agent tools for managing loads, fleet, brokers, trailers, invoices, documents, compliance, analytics, accessorials, settlements, scoring, notifications, WhatsApp, sandbox, and system meta.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

@@ -20,6 +20,7 @@ from app.api.routes import (
     notifications,
     sandbox,
     scoring,
+    settlements,
     trailers,
     vehicles,
 )
@@ -87,4 +88,5 @@ app.include_router(scoring.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(sandbox.router, prefix="/api")
 app.include_router(accessorials.router, prefix="/api")
+app.include_router(settlements.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")
