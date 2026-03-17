@@ -5,7 +5,7 @@ FastAPI backend for the Stratus Dispatch Intelligence frontend.
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from contextlib import contextmanager
 
@@ -15,6 +15,8 @@ from pydantic import BaseModel
 
 # Local imports
 from config import DATABASE_PATH, API_HOST, API_PORT, DEBUG
+from database import init_db, get_db, seed_defaults
+from models import ScorerConfig
 from dat_email_parser import parse_load_email
 from profitability_engine import (
     score_load, optimize_chain, greedy_chain,
@@ -41,90 +43,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# =============================================================================
-# DATABASE
-# =============================================================================
-
-def init_db():
-    """Initialize SQLite database with required tables."""
-    with get_db() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS loads (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email_id TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-
-                -- From parser (Phase 1)
-                origin_city TEXT,
-                origin_state TEXT,
-                destination_city TEXT,
-                destination_state TEXT,
-                rate_total REAL,
-                rate_per_mile REAL,
-                mileage INTEGER,
-                deadhead_miles INTEGER,
-                weight INTEGER,
-                equipment_type TEXT,
-                commodity TEXT,
-                pickup_date TEXT,
-                pickup_time_window TEXT,
-                delivery_date TEXT,
-                delivery_time_window TEXT,
-                broker_name TEXT,
-                broker_mc_number TEXT,
-                contact_phone TEXT,
-                contact_email TEXT,
-                load_number TEXT,
-                notes TEXT,
-
-                -- From scorer (Phase 2)
-                total_miles INTEGER,
-                total_cost REAL,
-                net_revenue REAL,
-                profit REAL,
-                margin_pct REAL,
-                rpm REAL,
-                all_in_rpm REAL,
-                drive_hours REAL,
-                total_hours REAL,
-                profit_per_hour REAL,
-                score INTEGER,
-                action TEXT,
-                floor_rpm REAL,
-                warnings TEXT,
-
-                -- Deduplication
-                UNIQUE(origin_city, origin_state, destination_city, destination_state, pickup_date, broker_name)
-            )
-        """)
-
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS email_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email_id TEXT UNIQUE,
-                subject TEXT,
-                sender TEXT,
-                received_at TEXT,
-                processed_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                loads_found INTEGER,
-                status TEXT
-            )
-        """)
-
-        conn.commit()
-
-
-@contextmanager
-def get_db():
-    """Database connection context manager."""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 
 # =============================================================================
@@ -184,6 +102,27 @@ class OptimizeInput(BaseModel):
     assumptions: Optional[AssumptionsInput] = None
 
 
+class CostConfigInput(BaseModel):
+    truck_lease_monthly: Optional[float] = None
+    insurance_monthly: Optional[float] = None
+    overhead_monthly: Optional[float] = None
+    maint_reserve_monthly: Optional[float] = None
+    expected_monthly_miles: Optional[int] = None
+    driver_pay_mode: Optional[str] = None
+    driver_base_weekly: Optional[float] = None
+    driver_per_mile: Optional[float] = None
+    factoring_fee_pct: Optional[float] = None
+    fuel_mpg: Optional[float] = None
+    default_fuel_price: Optional[float] = None
+
+
+class ScorerConfigInput(BaseModel):
+    financial_weight: float
+    lane_weight: float
+    broker_weight: float
+    strategic_weight: float
+
+
 # =============================================================================
 # API ENDPOINTS
 # =============================================================================
@@ -191,7 +130,8 @@ class OptimizeInput(BaseModel):
 @app.on_event("startup")
 async def startup():
     """Initialize database on startup."""
-    init_db()
+    init_db(DATABASE_PATH)
+    seed_defaults(DATABASE_PATH)
 
 
 @app.get("/")
@@ -225,7 +165,7 @@ async def get_loads(
     query += f" ORDER BY {sort_by} {order} NULLS LAST LIMIT ? OFFSET ?"
     params.extend([limit, offset])
 
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         rows = conn.execute(query, params).fetchall()
         results = []
         for row in rows:
@@ -243,7 +183,7 @@ async def get_loads(
 @app.get("/api/loads/{load_id}")
 async def get_load(load_id: int):
     """Get a single load by ID."""
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         row = conn.execute("SELECT * FROM loads WHERE id = ?", (load_id,)).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Load not found")
@@ -287,7 +227,7 @@ async def create_load(load: LoadInput, assumptions: Optional[AssumptionsInput] =
     scored = score_load(load_dict, assumptions=config)
 
     # Insert into database
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         try:
             cursor = conn.execute("""
                 INSERT INTO loads (
@@ -343,7 +283,7 @@ async def create_load(load: LoadInput, assumptions: Optional[AssumptionsInput] =
 @app.delete("/api/loads/{load_id}")
 async def delete_load(load_id: int):
     """Delete a load by ID."""
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         result = conn.execute("DELETE FROM loads WHERE id = ?", (load_id,))
         conn.commit()
         if result.rowcount == 0:
@@ -378,7 +318,7 @@ async def parse_and_score(
 
     if save:
         saved_count = 0
-        with get_db() as conn:
+        with get_db(DATABASE_PATH) as conn:
             for scored in scored_loads:
                 try:
                     cursor = conn.execute("""
@@ -443,7 +383,7 @@ async def score_single_load(load: LoadInput, assumptions: Optional[AssumptionsIn
 async def optimize_loads(request: OptimizeInput):
     """Run chain optimizer on selected loads."""
     # Fetch loads from database
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         placeholders = ",".join("?" * len(request.load_ids))
         rows = conn.execute(
             f"SELECT * FROM loads WHERE id IN ({placeholders})",
@@ -515,7 +455,7 @@ async def get_default_assumptions():
 @app.get("/api/stats")
 async def get_stats():
     """Get dashboard statistics."""
-    with get_db() as conn:
+    with get_db(DATABASE_PATH) as conn:
         total = conn.execute("SELECT COUNT(*) FROM loads").fetchone()[0]
         by_action = conn.execute("""
             SELECT action, COUNT(*) as count
@@ -537,6 +477,77 @@ async def get_stats():
         "avg_profit": round(avg_profit, 2),
         "avg_margin": round(avg_margin, 2)
     }
+
+
+# =============================================================================
+# COST / SCORER CONFIG ENDPOINTS
+# =============================================================================
+
+@app.get("/api/config/costs")
+async def get_cost_config():
+    """Read cost configuration from database."""
+    with get_db(DATABASE_PATH) as conn:
+        row = conn.execute("SELECT * FROM cost_config WHERE id = 1").fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Cost config not found")
+        return dict(row)
+
+
+@app.put("/api/config/costs")
+async def update_cost_config(config: CostConfigInput):
+    """Update cost configuration (partial update — only non-None fields)."""
+    updates = {k: v for k, v in config.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values())
+
+    with get_db(DATABASE_PATH) as conn:
+        conn.execute(
+            f"UPDATE cost_config SET {set_clause} WHERE id = 1",
+            values,
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM cost_config WHERE id = 1").fetchone()
+        return dict(row)
+
+
+@app.get("/api/config/scorer")
+async def get_scorer_config():
+    """Read scorer configuration from database."""
+    with get_db(DATABASE_PATH) as conn:
+        row = conn.execute("SELECT * FROM scorer_config WHERE id = 1").fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Scorer config not found")
+        return dict(row)
+
+
+@app.put("/api/config/scorer")
+async def update_scorer_config(config: ScorerConfigInput):
+    """Update scorer configuration. Weights must sum to 1.0."""
+    # Validate weights sum to 1.0 using the ScorerConfig model
+    try:
+        ScorerConfig(**config.model_dump())
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    updates = config.model_dump()
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values())
+
+    with get_db(DATABASE_PATH) as conn:
+        conn.execute(
+            f"UPDATE scorer_config SET {set_clause} WHERE id = 1",
+            values,
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM scorer_config WHERE id = 1").fetchone()
+        return dict(row)
 
 
 # =============================================================================
