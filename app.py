@@ -16,13 +16,16 @@ from pydantic import BaseModel
 # Local imports
 from config import DATABASE_PATH, API_HOST, API_PORT, DEBUG
 from database import init_db, get_db, seed_defaults
-from models import ScorerConfig
+from models import ScorerConfig, ParsedLoad
 from dat_email_parser import parse_load_email
 from profitability_engine import (
     score_load, optimize_chain, greedy_chain,
     DEFAULT_ASSUMPTIONS, CITIES, is_city_known
 )
 from distance_service import get_distance, CITY_COORDS
+from ingestion.dat_paste_parser import parse_dat_paste
+from ingestion.gap_resolver import resolve_gaps
+from ingestion.duplicate_detector import check_duplicate
 
 
 # =============================================================================
@@ -121,6 +124,16 @@ class ScorerConfigInput(BaseModel):
     lane_weight: float
     broker_weight: float
     strategic_weight: float
+
+
+class PasteInput(BaseModel):
+    text: str
+
+
+class CompleteInput(BaseModel):
+    load: dict
+    fills: dict = {}
+    save: bool = False
 
 
 # =============================================================================
@@ -477,6 +490,104 @@ async def get_stats():
         "avg_profit": round(avg_profit, 2),
         "avg_margin": round(avg_margin, 2)
     }
+
+
+# =============================================================================
+# INGESTION ENDPOINTS
+# =============================================================================
+
+@app.post("/api/ingest/paste")
+async def ingest_paste(input: PasteInput):
+    """Parse pasted DAT text, resolve gaps, and check for duplicates."""
+    loads = parse_dat_paste(input.text)
+
+    results = []
+    all_gaps = []
+    duplicate_count = 0
+
+    for load in loads:
+        gap_report = resolve_gaps(load)
+        dup_result = check_duplicate(load, DATABASE_PATH)
+
+        load_data = load.to_dict()
+        load_data["gaps"] = {
+            "missing_required": gap_report.missing_required,
+            "missing_optional": gap_report.missing_optional,
+            "is_complete": gap_report.is_complete,
+            "summary": gap_report.summary,
+        }
+        load_data["duplicate"] = {
+            "is_duplicate": dup_result.is_duplicate,
+            "matching_load_id": dup_result.matching_load_id,
+            "message": dup_result.message,
+        }
+
+        if not gap_report.is_complete:
+            all_gaps.extend(gap_report.missing_required)
+        if dup_result.is_duplicate:
+            duplicate_count += 1
+
+        results.append(load_data)
+
+    return {
+        "loads": results,
+        "count": len(results),
+        "gaps": all_gaps,
+        "duplicates": duplicate_count,
+    }
+
+
+@app.post("/api/ingest/complete")
+async def ingest_complete(input: CompleteInput):
+    """Complete and optionally save a load."""
+    merged = {**input.load, **input.fills}
+
+    if "source" not in merged or not merged["source"]:
+        merged["source"] = "manual"
+
+    parsed = ParsedLoad(**merged)
+    scored = score_load(parsed.to_dict())
+
+    if input.save:
+        with get_db(DATABASE_PATH) as conn:
+            try:
+                cursor = conn.execute("""
+                    INSERT INTO loads (
+                        origin_city, origin_state, destination_city, destination_state,
+                        rate_total, rate_per_mile, mileage, deadhead_miles, weight,
+                        equipment_type, commodity, pickup_date, pickup_time_window,
+                        delivery_date, delivery_time_window, broker_name, broker_mc_number,
+                        contact_phone, contact_email, load_number, notes,
+                        total_miles, total_cost, net_revenue, profit, margin_pct,
+                        rpm, all_in_rpm, drive_hours, total_hours, profit_per_hour,
+                        score, action, floor_rpm, warnings, source
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    scored["origin_city"], scored["origin_state"],
+                    scored["destination_city"], scored["destination_state"],
+                    scored["rate_total"], scored.get("rpm"),
+                    scored["mileage"], scored["deadhead_miles"], scored["weight"],
+                    scored["equipment_type"], scored["commodity"],
+                    scored["pickup_date"], scored["pickup_time_window"],
+                    scored["delivery_date"], scored["delivery_time_window"],
+                    scored["broker_name"], scored["broker_mc_number"],
+                    scored["contact_phone"], scored["contact_email"],
+                    scored["load_number"], scored.get("notes", ""),
+                    scored["total_miles"], scored["total_cost"],
+                    scored["net_revenue"], scored["profit"], scored["margin_pct"],
+                    scored["rpm"], scored["all_in_rpm"],
+                    scored["drive_hours"], scored["total_hours"], scored["profit_per_hour"],
+                    scored["score"], scored["action"], scored["floor_rpm"],
+                    json.dumps(scored["warnings"]),
+                    merged.get("source", "manual"),
+                ))
+                conn.commit()
+                return {"saved": True, "id": cursor.lastrowid, "scored": scored}
+            except sqlite3.IntegrityError:
+                return {"saved": False, "error": "Duplicate load", "scored": scored}
+
+    return {"saved": False, "id": None, "scored": scored}
 
 
 # =============================================================================
