@@ -19,13 +19,17 @@ from database import init_db, get_db, seed_defaults
 from models import ScorerConfig, ParsedLoad
 from dat_email_parser import parse_load_email
 from profitability_engine import (
-    score_load, optimize_chain, greedy_chain,
-    DEFAULT_ASSUMPTIONS, CITIES, is_city_known
+    score_load, DEFAULT_ASSUMPTIONS, CITIES, is_city_known
 )
 from distance_service import get_distance, CITY_COORDS
 from ingestion.dat_paste_parser import parse_dat_paste
 from ingestion.gap_resolver import resolve_gaps
 from ingestion.duplicate_detector import check_duplicate
+from analytics.lane_history import rebuild_lane_history
+from analytics.broker_history import rebuild_broker_history
+from optimizer.chain_optimizer import optimize_chain as new_optimize_chain
+from optimizer.hos_model import HOSState
+from optimizer.watchlist import build_watchlist, resolve_watchlist
 
 
 # =============================================================================
@@ -102,6 +106,7 @@ class OptimizeInput(BaseModel):
     start_city: str = "Cleveland, OH"
     hos_remaining: float = 11.0
     days_away: int = 0
+    max_days: int = 1
     assumptions: Optional[AssumptionsInput] = None
 
 
@@ -134,6 +139,35 @@ class CompleteInput(BaseModel):
     load: dict
     fills: dict = {}
     save: bool = False
+
+
+class FeedbackInput(BaseModel):
+    actual_dwell_hours: Optional[float] = None
+    actual_rate_paid: Optional[float] = None
+    actual_toll_cost: Optional[float] = None
+    detention_hours: float = 0.0
+    ontime_pickup: bool = True
+    issues: str = ""
+
+
+class OutcomeInput(BaseModel):
+    outcome: str
+
+
+class DuplicateResolveInput(BaseModel):
+    load_id: int
+    action: str
+
+
+class DemandTierInput(BaseModel):
+    city: str
+    state: str
+    tier: int
+
+
+class WatchlistResolveInput(BaseModel):
+    actual_dwell_hours: float
+    scenario_tree: dict
 
 
 # =============================================================================
@@ -414,29 +448,20 @@ async def optimize_loads(request: OptimizeInput):
     if request.assumptions:
         config = request.assumptions.dict()
 
-    # Run optimizer
-    optimized = optimize_chain(
+    # Create HOS state from hos_remaining parameter
+    hos_state = HOSState(drive_hours_remaining=request.hos_remaining)
+
+    # Run new optimizer
+    result = new_optimize_chain(
         loads,
         start_city=request.start_city,
-        hos_remaining=request.hos_remaining,
-        days_away=request.days_away,
-        assumptions=config
+        hos_state=hos_state,
+        assumptions=config,
+        db_path=DATABASE_PATH,
+        max_days=request.max_days,
     )
 
-    # Run greedy baseline for comparison
-    greedy = greedy_chain(
-        loads,
-        start_city=request.start_city,
-        hos_remaining=request.hos_remaining,
-        days_away=request.days_away,
-        assumptions=config
-    )
-
-    return {
-        "optimized": optimized,
-        "greedy": greedy,
-        "profit_difference": optimized["summary"]["total_profit"] - greedy["summary"]["total_profit"]
-    }
+    return result
 
 
 @app.get("/api/distance")
@@ -659,6 +684,282 @@ async def update_scorer_config(config: ScorerConfigInput):
         conn.commit()
         row = conn.execute("SELECT * FROM scorer_config WHERE id = 1").fetchone()
         return dict(row)
+
+
+# =============================================================================
+# FEEDBACK & OUTCOME ENDPOINTS
+# =============================================================================
+
+@app.post("/api/loads/{load_id}/feedback")
+async def post_feedback(load_id: int, feedback: FeedbackInput):
+    """Save post-load feedback and update broker grades."""
+    with get_db(DATABASE_PATH) as conn:
+        # Verify load exists
+        load = conn.execute("SELECT id FROM loads WHERE id = ?", (load_id,)).fetchone()
+        if not load:
+            raise HTTPException(status_code=404, detail="Load not found")
+
+        now = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            """INSERT INTO load_feedback
+               (load_id, actual_dwell_hours, actual_rate_paid, actual_toll_cost,
+                detention_hours, ontime_pickup, issues, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (load_id, feedback.actual_dwell_hours, feedback.actual_rate_paid,
+             feedback.actual_toll_cost, feedback.detention_hours,
+             feedback.ontime_pickup, feedback.issues, now),
+        )
+        conn.commit()
+
+        # Fetch saved feedback
+        row = conn.execute(
+            "SELECT * FROM load_feedback WHERE load_id = ? ORDER BY id DESC LIMIT 1",
+            (load_id,),
+        ).fetchone()
+        result = dict(row)
+
+    # Update broker grades
+    rebuild_broker_history(DATABASE_PATH)
+
+    return result
+
+
+@app.patch("/api/loads/{load_id}/outcome")
+async def patch_outcome(load_id: int, body: OutcomeInput):
+    """Set load outcome (booked, passed, expired, watchlist_skipped)."""
+    valid_outcomes = {"booked", "passed", "expired", "watchlist_skipped"}
+    if body.outcome not in valid_outcomes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid outcome. Must be one of: {', '.join(sorted(valid_outcomes))}",
+        )
+
+    with get_db(DATABASE_PATH) as conn:
+        result = conn.execute(
+            "UPDATE loads SET outcome = ? WHERE id = ?",
+            (body.outcome, load_id),
+        )
+        conn.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Load not found")
+
+        row = conn.execute("SELECT * FROM loads WHERE id = ?", (load_id,)).fetchone()
+        load = dict(row)
+
+    # Update lane history
+    rebuild_lane_history(DATABASE_PATH)
+
+    return load
+
+
+# =============================================================================
+# ANALYTICS ENDPOINTS
+# =============================================================================
+
+@app.get("/api/analytics/lanes")
+async def get_lane_analytics(
+    origin_state: Optional[str] = None,
+    destination_state: Optional[str] = None,
+):
+    """Get lane history statistics with optional state filters."""
+    query = "SELECT * FROM lane_history WHERE 1=1"
+    params = []
+
+    if origin_state:
+        query += " AND origin_state = ?"
+        params.append(origin_state)
+    if destination_state:
+        query += " AND destination_state = ?"
+        params.append(destination_state)
+
+    with get_db(DATABASE_PATH) as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+@app.get("/api/analytics/brokers")
+async def get_broker_analytics():
+    """Get broker reliability grades."""
+    with get_db(DATABASE_PATH) as conn:
+        rows = conn.execute("SELECT * FROM broker_history").fetchall()
+        return [dict(r) for r in rows]
+
+
+# =============================================================================
+# DUPLICATE ENDPOINTS
+# =============================================================================
+
+@app.get("/api/duplicates")
+async def get_duplicates():
+    """Get loads flagged as duplicates."""
+    with get_db(DATABASE_PATH) as conn:
+        rows = conn.execute(
+            "SELECT * FROM loads WHERE duplicate_of IS NOT NULL"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+@app.post("/api/duplicates")
+async def resolve_duplicate(body: DuplicateResolveInput):
+    """Resolve a duplicate load: keep, remove, or merge."""
+    valid_actions = {"keep", "remove", "merge"}
+    if body.action not in valid_actions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action. Must be one of: {', '.join(sorted(valid_actions))}",
+        )
+
+    with get_db(DATABASE_PATH) as conn:
+        load = conn.execute(
+            "SELECT * FROM loads WHERE id = ?", (body.load_id,)
+        ).fetchone()
+        if not load:
+            raise HTTPException(status_code=404, detail="Load not found")
+
+        if body.action == "keep":
+            conn.execute(
+                "UPDATE loads SET duplicate_of = NULL WHERE id = ?",
+                (body.load_id,),
+            )
+        elif body.action == "remove":
+            conn.execute("DELETE FROM loads WHERE id = ?", (body.load_id,))
+        elif body.action == "merge":
+            original_id = load["duplicate_of"]
+            if original_id:
+                original = conn.execute(
+                    "SELECT * FROM loads WHERE id = ?", (original_id,)
+                ).fetchone()
+                if original:
+                    # Merge non-null fields from duplicate into original
+                    dup = dict(load)
+                    orig = dict(original)
+                    updates = {}
+                    skip_cols = {"id", "created_at", "duplicate_of"}
+                    for col in dup:
+                        if col in skip_cols:
+                            continue
+                        if dup[col] is not None and orig.get(col) is None:
+                            updates[col] = dup[col]
+
+                    if updates:
+                        set_clause = ", ".join(f"{k} = ?" for k in updates)
+                        values = list(updates.values()) + [original_id]
+                        conn.execute(
+                            f"UPDATE loads SET {set_clause} WHERE id = ?", values
+                        )
+            # Delete the duplicate
+            conn.execute("DELETE FROM loads WHERE id = ?", (body.load_id,))
+
+        conn.commit()
+
+    return {"status": "resolved", "load_id": body.load_id, "action": body.action}
+
+
+# =============================================================================
+# DEMAND TIER CONFIG ENDPOINTS
+# =============================================================================
+
+@app.get("/api/config/demand-tiers")
+async def get_demand_tiers():
+    """Return city demand tiers."""
+    with get_db(DATABASE_PATH) as conn:
+        rows = conn.execute("SELECT * FROM city_demand_tiers").fetchall()
+        return [dict(r) for r in rows]
+
+
+@app.put("/api/config/demand-tiers")
+async def update_demand_tiers(tiers: list[DemandTierInput]):
+    """Update or add city demand tiers."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_db(DATABASE_PATH) as conn:
+        for tier in tiers:
+            # Upsert: update existing or insert new
+            existing = conn.execute(
+                "SELECT id FROM city_demand_tiers WHERE city = ? AND state = ?",
+                (tier.city, tier.state),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    "UPDATE city_demand_tiers SET tier = ?, updated_at = ?, source = 'api' WHERE id = ?",
+                    (tier.tier, now, existing["id"]),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO city_demand_tiers (city, state, tier, source, updated_at)
+                       VALUES (?, ?, ?, 'api', ?)""",
+                    (tier.city, tier.state, tier.tier, now),
+                )
+        conn.commit()
+        rows = conn.execute("SELECT * FROM city_demand_tiers").fetchall()
+        return [dict(r) for r in rows]
+
+
+# =============================================================================
+# WATCHLIST ENDPOINTS
+# =============================================================================
+
+@app.get("/api/watchlist")
+async def get_watchlist(
+    committed_ids: str = "",
+    start_city: str = "Cleveland, OH",
+    hos_remaining: float = 11.0,
+    max_days: int = 1,
+):
+    """Build watchlist for current committed loads."""
+    with get_db(DATABASE_PATH) as conn:
+        committed_loads = []
+        if committed_ids:
+            id_list = [int(x.strip()) for x in committed_ids.split(",") if x.strip()]
+            if id_list:
+                placeholders = ",".join("?" * len(id_list))
+                rows = conn.execute(
+                    f"SELECT * FROM loads WHERE id IN ({placeholders})", id_list
+                ).fetchall()
+                committed_loads = [dict(r) for r in rows]
+
+        # Get available (non-booked, non-duplicate) loads
+        available_rows = conn.execute(
+            """SELECT * FROM loads
+               WHERE (outcome IS NULL OR outcome NOT IN ('booked', 'expired'))
+               AND duplicate_of IS NULL"""
+        ).fetchall()
+        available_loads = [dict(r) for r in available_rows]
+
+    hos_state = HOSState(drive_hours_remaining=hos_remaining)
+
+    plan = build_watchlist(
+        committed_loads=committed_loads,
+        available_loads=available_loads,
+        current_city=start_city,
+        hos_state=hos_state,
+        max_days=max_days,
+        db_path=DATABASE_PATH,
+    )
+
+    return {
+        "committed": plan.committed,
+        "watchlist": [
+            {
+                "load": entry.load,
+                "score": entry.score,
+                "profit": entry.profit,
+                "scenarios": entry.scenarios,
+                "pickup_deadline": entry.pickup_deadline,
+            }
+            for entry in plan.watchlist
+        ],
+        "scenario_tree": plan.scenario_tree,
+    }
+
+
+@app.post("/api/watchlist/resolve")
+async def resolve_watchlist_endpoint(body: WatchlistResolveInput):
+    """Resolve watchlist with actual dwell time."""
+    recommendations = resolve_watchlist(
+        actual_dwell_hours=body.actual_dwell_hours,
+        scenario_tree=body.scenario_tree,
+    )
+    return {"recommendations": recommendations}
 
 
 # =============================================================================
