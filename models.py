@@ -4,6 +4,8 @@ These models are used across all modules: ingestion parsers, cost calculator,
 scorers, optimizer, and API endpoints.
 """
 
+from __future__ import annotations
+
 from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, model_validator
