@@ -1,0 +1,103 @@
+"""
+Configuration for Load Profitability Tool - Phase 3
+
+SETUP:
+1. Copy this file to config.py:  cp config.py.example config.py
+2. Fill in your API keys below
+3. Or use environment variables (recommended for API keys)
+
+IMPORTANT: config.py is in .gitignore - never commit real credentials!
+"""
+
+# =============================================================================
+# GOOGLE MAPS API (for real distance lookups)
+# =============================================================================
+# Get your API key from: https://console.cloud.google.com/apis/credentials
+# Enable "Distance Matrix API" for your project
+#
+# RECOMMENDED: Set via environment variable instead of hardcoding:
+#   export GOOGLE_MAPS_API_KEY="your-api-key-here"
+
+GOOGLE_MAPS_API_KEY = ""  # Leave empty if using environment variable
+
+# Set to True to use Google Maps for distance calculations
+# Set to False to use Haversine estimates (free, less accurate)
+USE_GOOGLE_MAPS = True  # Will auto-disable if no API key found
+
+
+# =============================================================================
+# EMAIL / IMAP CONFIGURATION (for live email ingestion)
+# =============================================================================
+# For Gmail: Create an App Password at https://myaccount.google.com/apppasswords
+# (Requires 2FA enabled on your Google account)
+
+EMAIL_CONFIG = {
+    "provider": "gmail",  # "gmail" or "other"
+    "email": "",          # <-- YOUR EMAIL ADDRESS
+    "password": "",       # <-- APP PASSWORD (not your regular password!)
+    "imap_server": "imap.gmail.com",
+    "imap_port": 993,
+    "use_ssl": True,
+
+    # Filter rules for DAT alerts
+    "filter_sender": "",  # e.g. "alerts@dat.com" or leave empty
+    "filter_subject": "DAT Load Alert",  # Subject line to match
+}
+
+
+# =============================================================================
+# CLAUDE API (optional - for fallback parsing of messy emails)
+# =============================================================================
+# Get your API key from: https://console.anthropic.com/
+
+CLAUDE_API_KEY = ""  # <-- PUT YOUR CLAUDE API KEY HERE (optional)
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
+
+# Only use Claude when regex parser returns too many null fields
+USE_CLAUDE_FALLBACK = False
+
+
+# =============================================================================
+# DATABASE
+# =============================================================================
+
+DATABASE_PATH = "loads.db"
+
+
+# =============================================================================
+# SERVER
+# =============================================================================
+
+API_HOST = "0.0.0.0"
+API_PORT = 8000
+DEBUG = True
+
+
+# =============================================================================
+# HELPER: Validate config
+# =============================================================================
+
+def validate_config():
+    """Check if required config values are set."""
+    issues = []
+
+    if USE_GOOGLE_MAPS and not GOOGLE_MAPS_API_KEY:
+        issues.append("USE_GOOGLE_MAPS is True but GOOGLE_MAPS_API_KEY is empty")
+
+    if EMAIL_CONFIG["email"] and not EMAIL_CONFIG["password"]:
+        issues.append("EMAIL is set but PASSWORD is empty")
+
+    if USE_CLAUDE_FALLBACK and not CLAUDE_API_KEY:
+        issues.append("USE_CLAUDE_FALLBACK is True but CLAUDE_API_KEY is empty")
+
+    return issues
+
+
+if __name__ == "__main__":
+    issues = validate_config()
+    if issues:
+        print("Config issues:")
+        for issue in issues:
+            print(f"  - {issue}")
+    else:
+        print("Config OK (but credentials may still be empty)")

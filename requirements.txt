@@ -1,0 +1,18 @@
+# Load Profitability Tool - Phase 3 Dependencies
+
+# Web framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Data validation
+pydantic>=2.5.0
+
+# SSL certificates (for Google Maps API)
+certifi>=2023.0.0
+
+# Optional: for better JSON handling
+python-multipart>=0.0.6
+
+# Testing (optional)
+pytest>=7.4.0
+httpx>=0.25.0
