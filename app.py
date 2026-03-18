@@ -535,17 +535,14 @@ async def ingest_paste(input: PasteInput):
         dup_result = check_duplicate(load, DATABASE_PATH)
 
         load_data = load.to_dict()
-        load_data["gaps"] = {
-            "missing_required": gap_report.missing_required,
-            "missing_optional": gap_report.missing_optional,
-            "is_complete": gap_report.is_complete,
-            "summary": gap_report.summary,
-        }
-        load_data["duplicate"] = {
-            "is_duplicate": dup_result.is_duplicate,
-            "matching_load_id": dup_result.matching_load_id,
-            "message": dup_result.message,
-        }
+        # Flatten gaps and duplicate info for frontend consumption
+        load_data["gaps"] = gap_report.summary
+        load_data["missing_required"] = gap_report.missing_required
+        load_data["missing_optional"] = gap_report.missing_optional
+        load_data["is_complete"] = gap_report.is_complete
+        if dup_result.is_duplicate:
+            load_data["duplicate_of"] = dup_result.matching_load_id
+            load_data["duplicate_message"] = dup_result.message
 
         if not gap_report.is_complete:
             all_gaps.extend(gap_report.missing_required)
