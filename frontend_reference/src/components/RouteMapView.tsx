@@ -158,11 +158,11 @@ export default function RouteMapView({ chain, startCity, homeBase }: RouteMapVie
 
         if (isReturnHome) {
           polylineOptions = {
-            strokeColor: '#64748b',
+            strokeColor: '#3b82f6',
             strokeOpacity: 0,
             strokeWeight: 3,
             icons: [{
-              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, strokeWeight: 3, scale: 3 },
+              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, strokeWeight: 3, scale: 3 },
               offset: '0',
               repeat: '15px',
             }],
@@ -261,7 +261,7 @@ export default function RouteMapView({ chain, startCity, homeBase }: RouteMapVie
       bounds.extend(end);
 
       const isReturnHome = leg.isReturnHome || false;
-      const color = isReturnHome ? '#64748b' : '#22c55e';
+      const color = isReturnHome ? '#3b82f6' : '#22c55e';
 
       const polyline = new google.maps.Polyline({
         path: [start, end],
@@ -465,7 +465,7 @@ export default function RouteMapView({ chain, startCity, homeBase }: RouteMapVie
             <span className="text-xs text-slate-300">Deadhead</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 border-t-2 border-dashed border-slate-500" />
+            <div className="w-6 border-t-2 border-dashed border-blue-500" />
             <span className="text-xs text-slate-300">Return Home</span>
           </div>
           <div className="flex items-center gap-2">
