@@ -107,3 +107,120 @@ class TestParseDatPaste:
         assert load.mileage == 530
         assert load.rate_total is None
         assert load.source == "paste"
+
+
+# ---------------------------------------------------------------------------
+# Real DAT tabular format tests
+# ---------------------------------------------------------------------------
+
+DAT_REAL_PASTE = """\
+Age
+Rate
+Trip
+Origin
+DH-O
+Destination
+DH-D
+Pick Up
+Equipment
+Company
+Contact
+CS
+DTP
+4m
+$1,100
+246
+Obetz, OH
+(13)
+Bardstown, KY
+3/17
+VR
+44,500 lbs
+53 ft - Full
+USA TRUCK LLC
+loadpostings@usa-truck.com
+– CS
+– DTP
+7m
+–
+189
+Columbus, OH
+(0)
+Lexington, KY
+3/17
+V
+44,500 lbs
+53 ft - Full
+Subscribe for full access
+– CS
+– DTP
+"""
+
+DAT_SINGLE_LOAD = """\
+Age
+Rate
+Trip
+Origin
+DH-O
+Destination
+Pick Up
+Equipment
+Company
+Contact
+CS
+DTP
+4m
+$1,100
+246
+Obetz, OH
+(13)
+Bardstown, KY
+3/17
+VR
+44,500 lbs
+53 ft - Full
+USA TRUCK LLC
+loadpostings@usa-truck.com
+– CS
+– DTP
+"""
+
+
+class TestDatTabularFormat:
+    def test_parses_two_loads(self):
+        loads = parse_dat_paste(DAT_REAL_PASTE)
+        assert len(loads) == 2
+
+    def test_first_load_fields(self):
+        loads = parse_dat_paste(DAT_REAL_PASTE)
+        load = loads[0]
+        assert load.origin_city == "Obetz"
+        assert load.origin_state == "OH"
+        assert load.destination_city == "Bardstown"
+        assert load.destination_state == "KY"
+        assert load.mileage == 246
+        assert load.rate_total == 1100.00
+        assert load.deadhead_miles == 13
+        assert load.weight == 44500
+        assert load.equipment_type == "Van"  # VR maps to Van
+        assert load.broker_name == "USA TRUCK LLC"
+        assert load.contact_email == "loadpostings@usa-truck.com"
+        assert load.source == "paste"
+        assert "2026" in load.pickup_date or "2027" in load.pickup_date  # year depends on current date
+
+    def test_second_load_no_rate(self):
+        loads = parse_dat_paste(DAT_REAL_PASTE)
+        load = loads[1]
+        assert load.origin_city == "Columbus"
+        assert load.origin_state == "OH"
+        assert load.destination_city == "Lexington"
+        assert load.destination_state == "KY"
+        assert load.mileage == 189
+        assert load.rate_total is None  # "–" means no rate
+        assert load.deadhead_miles == 0
+
+    def test_single_dat_load(self):
+        loads = parse_dat_paste(DAT_SINGLE_LOAD)
+        assert len(loads) == 1
+        assert loads[0].origin_city == "Obetz"
+        assert loads[0].rate_total == 1100.00
