@@ -166,20 +166,54 @@ export default function App() {
     await scoreLoadsViaApi(newLoads);
   }, [scoreLoadsViaApi]);
 
-  // Refresh loads from API (used by PasteIngestion callback)
+  // Fetch real loads from backend database
   const refreshLoads = useCallback(async () => {
     if (!apiConnected) return;
-    // Re-fetch and re-score loads; for now re-score existing loads
-    // In the future this should fetch from the backend load pool
-    if (loads.length > 0) {
-      await scoreLoadsViaApi(loads);
+    try {
+      const backendLoads = await api.fetchLoads();
+      if (backendLoads && backendLoads.length > 0) {
+        // Backend loads are already scored — convert to ScoredLoad format
+        const scored = backendLoads.map((l: any) => ({
+          ...l,
+          id: String(l.id),
+          origin: `${l.originCity || l.origin_city}, ${l.originState || l.origin_state}`,
+          destination: `${l.destinationCity || l.destination_city}, ${l.destinationState || l.destination_state}`,
+          miles: l.mileage || l.miles || 0,
+          rate: l.rateTotal || l.rate_total || 0,
+          weight: l.weight || 0,
+          commodity: l.commodity || '',
+          detentionHours: l.detentionHours || 0,
+          pickupWindowStart: l.pickupDate || l.pickup_date || '',
+          deliveryDeadline: l.deliveryDate || l.delivery_date || '',
+          deadheadMiles: l.deadheadMiles || l.deadhead_miles || 0,
+          totalMiles: l.totalMiles || l.total_miles || 0,
+          totalCost: l.totalCost || l.total_cost || 0,
+          netRevenue: l.netRevenue || l.net_revenue || 0,
+          profit: l.profit || 0,
+          marginPct: l.marginPct || l.margin_pct || 0,
+          rpm: l.rpm || 0,
+          allInRpm: l.allInRpm || l.all_in_rpm || 0,
+          driveHours: l.driveHours || l.drive_hours || 0,
+          totalHours: l.totalHours || l.total_hours || 0,
+          profitPerHour: l.profitPerHour || l.profit_per_hour || 0,
+          score: l.score || 0,
+          action: l.action || 'NEGOTIATE',
+        }));
+        setLoads(scored);
+        setScoredLoads(scored);
+      } else {
+        setLoads([]);
+        setScoredLoads([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch loads:', error);
     }
-  }, [apiConnected, loads, scoreLoadsViaApi]);
+  }, [apiConnected]);
 
-  // Initial Load Generation
+  // Initial load fetch from backend
   useEffect(() => {
     if (apiConnected) {
-      handleGenerateLoads();
+      refreshLoads();
     }
   }, [apiConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
