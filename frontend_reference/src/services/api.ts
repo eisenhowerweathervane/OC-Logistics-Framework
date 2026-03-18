@@ -3,6 +3,17 @@
  * Handles data transformation between camelCase (frontend) and snake_case (backend)
  */
 
+import type {
+  CostConfig,
+  ScorerConfig,
+  GapReport,
+  LoadFeedback,
+  LaneHistory,
+  BrokerHistory,
+  WatchlistPlan,
+  CityDemandTier,
+} from '../types';
+
 const API_BASE_URL = 'http://localhost:8000';
 
 // =============================================================================
@@ -239,6 +250,258 @@ export async function healthCheck(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// =============================================================================
+// COST CONFIG
+// =============================================================================
+
+/**
+ * Get the current cost configuration
+ */
+export async function getCostConfig(): Promise<CostConfig> {
+  const response = await fetch(`${API_BASE_URL}/api/cost-config`);
+  if (!response.ok) throw new Error('Failed to get cost config');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Update cost configuration (partial update)
+ */
+export async function updateCostConfig(config: Partial<CostConfig>): Promise<CostConfig> {
+  const response = await fetch(`${API_BASE_URL}/api/cost-config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transformToSnakeCase(config)),
+  });
+  if (!response.ok) throw new Error('Failed to update cost config');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// SCORER CONFIG
+// =============================================================================
+
+/**
+ * Get the current scorer weights
+ */
+export async function getScorerConfig(): Promise<ScorerConfig> {
+  const response = await fetch(`${API_BASE_URL}/api/scorer-config`);
+  if (!response.ok) throw new Error('Failed to get scorer config');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Update scorer weights
+ */
+export async function updateScorerConfig(config: ScorerConfig): Promise<ScorerConfig> {
+  const response = await fetch(`${API_BASE_URL}/api/scorer-config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transformToSnakeCase(config)),
+  });
+  if (!response.ok) throw new Error('Failed to update scorer config');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// INGESTION
+// =============================================================================
+
+/**
+ * Ingest pasted load text and get a gap report
+ */
+export async function ingestPaste(text: string): Promise<GapReport> {
+  const response = await fetch(`${API_BASE_URL}/api/ingest/paste`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) throw new Error('Failed to ingest paste');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Complete ingestion with gap fills
+ */
+export async function ingestComplete(
+  load: any,
+  fills: Record<string, any>,
+  save: boolean
+): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/ingest/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      load: transformToSnakeCase(load),
+      fills: transformToSnakeCase(fills),
+      save,
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to complete ingestion');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// LOAD MANAGEMENT
+// =============================================================================
+
+/**
+ * Update a load's outcome (booked, passed, etc.)
+ */
+export async function updateLoadOutcome(loadId: number, outcome: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/loads/${loadId}/outcome`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outcome }),
+  });
+  if (!response.ok) throw new Error('Failed to update load outcome');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Submit feedback for a completed load
+ */
+export async function submitLoadFeedback(loadId: number, feedback: LoadFeedback): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/loads/${loadId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transformToSnakeCase(feedback)),
+  });
+  if (!response.ok) throw new Error('Failed to submit load feedback');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// ANALYTICS
+// =============================================================================
+
+/**
+ * Get lane history with optional state filters
+ */
+export async function getLaneHistory(
+  originState?: string,
+  destState?: string
+): Promise<LaneHistory[]> {
+  const params = new URLSearchParams();
+  if (originState) params.append('origin_state', originState);
+  if (destState) params.append('dest_state', destState);
+
+  const query = params.toString();
+  const url = `${API_BASE_URL}/api/analytics/lanes${query ? `?${query}` : ''}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to get lane history');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Get broker history / reliability data
+ */
+export async function getBrokerHistory(): Promise<BrokerHistory[]> {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/brokers`);
+  if (!response.ok) throw new Error('Failed to get broker history');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// WATCHLIST
+// =============================================================================
+
+/**
+ * Get the watchlist plan with scenario tree
+ */
+export async function getWatchlist(
+  committedIds: number[],
+  startCity: string,
+  hosRemaining: number,
+  maxDays: number
+): Promise<WatchlistPlan> {
+  const response = await fetch(`${API_BASE_URL}/api/watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      committed_ids: committedIds,
+      start_city: startCity,
+      hos_remaining: hosRemaining,
+      max_days: maxDays,
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to get watchlist');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Resolve watchlist after actual dwell is known
+ */
+export async function resolveWatchlist(
+  actualDwellHours: number,
+  scenarioTree: any
+): Promise<any[]> {
+  const response = await fetch(`${API_BASE_URL}/api/watchlist/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      actual_dwell_hours: actualDwellHours,
+      scenario_tree: transformToSnakeCase(scenarioTree),
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to resolve watchlist');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// DEMAND TIERS
+// =============================================================================
+
+/**
+ * Get city demand tiers
+ */
+export async function getDemandTiers(): Promise<CityDemandTier[]> {
+  const response = await fetch(`${API_BASE_URL}/api/demand-tiers`);
+  if (!response.ok) throw new Error('Failed to get demand tiers');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Update city demand tiers
+ */
+export async function updateDemandTiers(tiers: CityDemandTier[]): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/demand-tiers`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transformToSnakeCase(tiers)),
+  });
+  if (!response.ok) throw new Error('Failed to update demand tiers');
+  return transformToCamelCase(await response.json());
+}
+
+// =============================================================================
+// DUPLICATES
+// =============================================================================
+
+/**
+ * Get list of duplicate loads
+ */
+export async function getDuplicates(): Promise<any[]> {
+  const response = await fetch(`${API_BASE_URL}/api/duplicates`);
+  if (!response.ok) throw new Error('Failed to get duplicates');
+  return transformToCamelCase(await response.json());
+}
+
+/**
+ * Resolve a duplicate load
+ */
+export async function resolveDuplicate(
+  loadId: number,
+  action: 'keep' | 'remove' | 'merge'
+): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/duplicates/${loadId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  if (!response.ok) throw new Error('Failed to resolve duplicate');
+  return transformToCamelCase(await response.json());
 }
 
 // Export API base URL for reference

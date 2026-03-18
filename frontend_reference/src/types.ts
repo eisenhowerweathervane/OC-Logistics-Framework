@@ -77,3 +77,155 @@ export interface OptimizedChain {
     totalMiles: number;
   };
 }
+
+// =============================================================================
+// Cost configuration (monthly-based)
+// =============================================================================
+
+export interface CostConfig {
+  truckLeaseMonthly: number;
+  insuranceMonthly: number;
+  overheadMonthly: number;
+  maintReserveMonthly: number;
+  expectedMonthlyMiles: number;
+  driverPayMode: 'base_plus_mile' | 'per_mile_only' | 'base_only';
+  driverBaseWeekly: number;
+  driverPerMile: number;
+  factoringFeePct: number;
+  fuelMpg: number;
+  defaultFuelPrice: number;
+}
+
+// =============================================================================
+// Scorer weights
+// =============================================================================
+
+export interface ScorerConfig {
+  financialWeight: number;
+  laneWeight: number;
+  brokerWeight: number;
+  strategicWeight: number;
+}
+
+// =============================================================================
+// Gap report from ingestion
+// =============================================================================
+
+export interface GapReport {
+  loads: ParsedLoadResult[];
+  count: number;
+  gaps: string[];
+  duplicates: number;
+}
+
+export interface ParsedLoadResult {
+  originCity: string;
+  originState: string;
+  destinationCity: string;
+  destinationState: string;
+  mileage: number;
+  rateTotal: number | null;
+  source: string;
+  brokerName: string;
+  pickupDate: string;
+  gaps: string;
+  missingOptional: string[];
+  isComplete: boolean;
+  duplicateOf?: number;
+  duplicateMessage?: string;
+  [key: string]: any;
+}
+
+// =============================================================================
+// Watchlist
+// =============================================================================
+
+export interface WatchlistPlan {
+  committed: any[];
+  watchlist: WatchlistEntry[];
+  scenarioTree: ScenarioTree;
+}
+
+export interface WatchlistEntry {
+  load: any;
+  score: number | null;
+  profit: number | null;
+  scenarios: string[];
+  pickupDeadline: string;
+}
+
+export interface ScenarioTree {
+  scenarios: {
+    quick: ScenarioBranch;
+    normal: ScenarioBranch;
+    slow: ScenarioBranch;
+    detention: ScenarioBranch;
+  };
+  currentCity: string;
+  hosState: any;
+}
+
+export interface ScenarioBranch {
+  dwellHours: number;
+  recommendations: ScenarioRecommendation[];
+}
+
+export interface ScenarioRecommendation {
+  load: any;
+  score: number;
+  profit: number;
+  chainSummary: any;
+}
+
+// =============================================================================
+// Analytics
+// =============================================================================
+
+export interface LaneHistory {
+  originCity: string;
+  originState: string;
+  destinationCity: string;
+  destinationState: string;
+  avgRate: number;
+  avgMarginPct: number;
+  loadCount: number;
+  bookedCount: number;
+  trendDirection: 'up' | 'down' | 'stable';
+  lastSeen: string;
+}
+
+export interface BrokerHistory {
+  brokerName: string;
+  brokerMcNumber: string;
+  avgDetentionHours: number;
+  tonuCount: number;
+  loadsCompleted: number;
+  loadsSeen: number;
+  rateAccuracyPct: number;
+  ontimePickupPct: number;
+  reliabilityGrade: string;
+}
+
+// =============================================================================
+// Load feedback
+// =============================================================================
+
+export interface LoadFeedback {
+  actualDwellHours: number;
+  actualRatePaid: number;
+  actualTollCost: number;
+  detentionHours: number;
+  ontimePickup: boolean;
+  issues: string;
+}
+
+// =============================================================================
+// City demand tier
+// =============================================================================
+
+export interface CityDemandTier {
+  city: string;
+  state: string;
+  tier: number;
+  source: string;
+}
