@@ -7,6 +7,7 @@ import { LayoutDashboard, ClipboardPaste, List, BarChart3, Settings, MessageSqua
 
 import ControlBar from './components/ControlBar';
 import OptimizedChainView from './components/OptimizedChainView';
+import RouteMapView from './components/RouteMapView';
 import ComparisonView from './components/ComparisonView';
 import LoadPoolTable from './components/LoadPoolTable';
 import AddLoadModal from './components/AddLoadModal';
@@ -504,6 +505,14 @@ export default function App() {
               </div>
               <OptimizedChainView chain={optimizedChain} assumptions={assumptions} />
             </div>
+
+            {optimizedChain && optimizedChain.legs.length > 0 && (
+              <RouteMapView
+                chain={optimizedChain}
+                startCity={truckLocation}
+                homeBase={assumptions.homeBase || 'Cleveland, OH'}
+              />
+            )}
 
             <ComparisonView optimized={optimizedChain} naive={naiveChain} />
 
