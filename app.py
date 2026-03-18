@@ -30,6 +30,7 @@ from analytics.broker_history import rebuild_broker_history
 from optimizer.chain_optimizer import optimize_chain as new_optimize_chain
 from optimizer.hos_model import HOSState
 from optimizer.watchlist import build_watchlist, resolve_watchlist
+from optimizer.trihaul_suggestions import suggest_trihaul_cities
 
 
 # =============================================================================
@@ -957,6 +958,46 @@ async def resolve_watchlist_endpoint(body: WatchlistResolveInput):
         scenario_tree=body.scenario_tree,
     )
     return {"recommendations": recommendations}
+
+
+# =============================================================================
+# TRIHAUL SUGGESTIONS ENDPOINT
+# =============================================================================
+
+@app.get("/api/trihaul/suggestions")
+async def get_trihaul_suggestions(
+    current_city: str,
+    current_state: str,
+    home_city: str = "Cleveland",
+    home_state: str = "OH",
+    max_results: int = 5,
+):
+    """Suggest intermediate cities for trihaul routing."""
+    suggestions = suggest_trihaul_cities(
+        current_city=current_city,
+        current_state=current_state,
+        home_city=home_city,
+        home_state=home_state,
+        db_path=DATABASE_PATH,
+        max_results=max_results,
+    )
+    return [
+        {
+            "city": s.city,
+            "state": s.state,
+            "tier": s.tier,
+            "distance_from_current": s.distance_from_current,
+            "distance_to_home": s.distance_to_home,
+            "direct_home_distance": s.direct_home_distance,
+            "extra_miles": s.extra_miles,
+            "extra_miles_pct": s.extra_miles_pct,
+            "avg_rate_to_city": s.avg_rate_to_city,
+            "avg_rate_to_home": s.avg_rate_to_home,
+            "score": s.score,
+            "reason": s.reason,
+        }
+        for s in suggestions
+    ]
 
 
 # =============================================================================
