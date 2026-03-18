@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Filter, MessageSquarePlus } from 'lucide-react';
 import { ScoredLoad } from '../types';
 
 interface Props {
   loads: ScoredLoad[];
   includedInChain: string[];
   onToggleLoad: (id: string) => void;
+  onFeedbackClick?: (load: ScoredLoad) => void;
 }
 
 type SortKey = 'score' | 'profit' | 'marginPct' | 'rpm' | 'miles';
 
-export default function LoadPoolTable({ loads, includedInChain, onToggleLoad }: Props) {
+export default function LoadPoolTable({ loads, includedInChain, onToggleLoad, onFeedbackClick }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('score');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -114,19 +115,33 @@ export default function LoadPoolTable({ loads, includedInChain, onToggleLoad }: 
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleLoad(load.id);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          isIncluded 
-                            ? 'bg-amber-500 text-black' 
-                            : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-                        }`}
-                      >
-                        {isIncluded ? 'REMOVE' : 'ADD TO CHAIN'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {onFeedbackClick && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onFeedbackClick(load);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800 transition-all"
+                            title="Submit Feedback"
+                          >
+                            <MessageSquarePlus size={14} />
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleLoad(load.id);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                            isIncluded
+                              ? 'bg-amber-500 text-black'
+                              : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                          }`}
+                        >
+                          {isIncluded ? 'REMOVE' : 'ADD TO CHAIN'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {isExpanded && (

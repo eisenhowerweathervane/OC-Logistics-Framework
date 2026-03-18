@@ -96,12 +96,12 @@ export default function ControlBar({
       </div>
 
       <div className="flex items-center gap-3">
-        <button 
+        <button
           onClick={onGenerateLoads}
-          className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white hover:border-slate-700 transition-all"
-          title="Generate New Loads"
+          className="p-1.5 rounded border border-slate-700/50 text-slate-500 hover:text-slate-300 hover:border-slate-600 transition-all"
+          title="Generate Demo Loads"
         >
-          <RefreshCw size={20} />
+          <RefreshCw size={14} />
         </button>
         <button 
           onClick={onAddLoad}

@@ -3,13 +3,28 @@ import { Load, Assumptions, ScoredLoad, OptimizedChain } from './types';
 import { DEFAULT_ASSUMPTIONS } from './constants';
 import { generateRandomLoads } from './utils/generator';
 import * as api from './services/api';
+import { LayoutDashboard, ClipboardPaste, List, BarChart3, Settings, MessageSquarePlus } from 'lucide-react';
 
 import ControlBar from './components/ControlBar';
-import AssumptionsPanel from './components/AssumptionsPanel';
 import OptimizedChainView from './components/OptimizedChainView';
 import ComparisonView from './components/ComparisonView';
 import LoadPoolTable from './components/LoadPoolTable';
 import AddLoadModal from './components/AddLoadModal';
+import PasteIngestion from './components/PasteIngestion';
+import CostConfigPanel from './components/CostConfigPanel';
+import WatchlistView from './components/WatchlistView';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import LoadFeedbackModal from './components/LoadFeedbackModal';
+
+const tabs = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'import', label: 'Import Loads', icon: ClipboardPaste },
+  { id: 'watchlist', label: 'Watchlist', icon: List },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
 
 export default function App() {
   // State
@@ -18,7 +33,6 @@ export default function App() {
   const [assumptions, setAssumptions] = useState<Assumptions>(DEFAULT_ASSUMPTIONS);
   const [truckLocation, setTruckLocation] = useState('Cleveland, OH');
   const [hosRemaining, setHosRemaining] = useState(11);
-  const [isAssumptionsOpen, setIsAssumptionsOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [apiConnected, setApiConnected] = useState(false);
@@ -26,6 +40,16 @@ export default function App() {
   const [optimizedChain, setOptimizedChain] = useState<OptimizedChain | null>(null);
   const [naiveChain, setNaiveChain] = useState<OptimizedChain | null>(null);
   const [manualChainIds, setManualChainIds] = useState<string[]>([]);
+
+  // Tab navigation
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
+  // Settings panel state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+
+  // Feedback modal state
+  const [feedbackLoad, setFeedbackLoad] = useState<any | null>(null);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Check API connection on mount
   useEffect(() => {
@@ -142,6 +166,16 @@ export default function App() {
     await scoreLoadsViaApi(newLoads);
   }, [scoreLoadsViaApi]);
 
+  // Refresh loads from API (used by PasteIngestion callback)
+  const refreshLoads = useCallback(async () => {
+    if (!apiConnected) return;
+    // Re-fetch and re-score loads; for now re-score existing loads
+    // In the future this should fetch from the backend load pool
+    if (loads.length > 0) {
+      await scoreLoadsViaApi(loads);
+    }
+  }, [apiConnected, loads, scoreLoadsViaApi]);
+
   // Initial Load Generation
   useEffect(() => {
     if (apiConnected) {
@@ -165,10 +199,6 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      // For now, we'll call the greedy chain endpoint with scored load data
-      // The backend optimizer expects load_ids from database, so we need to
-      // create loads first or use a different approach
-
       // Convert assumptions to API format
       const apiAssumptions = {
         fuelPrice: assumptions.fuelPrice,
@@ -346,12 +376,36 @@ export default function App() {
     }
   };
 
+  // Feedback handlers
+  const handleFeedbackClick = (load: any) => {
+    setFeedbackLoad(load);
+    setIsFeedbackOpen(true);
+  };
+
+  const handleFeedbackClose = () => {
+    setFeedbackLoad(null);
+    setIsFeedbackOpen(false);
+  };
+
+  const handleFeedbackSubmitted = () => {
+    handleFeedbackClose();
+    // Optionally refresh data after feedback
+  };
+
+  // Load booked handler for watchlist
+  const handleLoadBooked = (loadId: number) => {
+    const idStr = loadId.toString();
+    if (!manualChainIds.includes(idStr)) {
+      setManualChainIds(prev => [...prev, idStr]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-amber-500/30">
       {/* API Status Banner */}
       {!apiConnected && (
         <div className="bg-amber-600 text-black text-center py-2 text-sm font-bold">
-          ⚠️ Backend API not connected. Running in offline mode.
+          Backend API not connected. Running in offline mode.
         </div>
       )}
       {isLoading && (
@@ -374,53 +428,110 @@ export default function App() {
         onGenerateLoads={handleGenerateLoads}
       />
 
+      {/* Tab Navigation */}
+      <nav className="sticky top-[72px] z-30 bg-slate-950/90 backdrop-blur border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 py-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-amber-500/20 text-amber-400'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Tab Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <AssumptionsPanel
-          assumptions={assumptions}
-          setAssumptions={setAssumptions}
-          isOpen={isAssumptionsOpen}
-          setIsOpen={setIsAssumptionsOpen}
-        />
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <>
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight font-display">
+                  Optimized Dispatch Chain
+                  {apiConnected && <span className="ml-2 text-xs text-green-500 font-normal">(Live API)</span>}
+                </h2>
+                {optimizedChain && (
+                  <button
+                    onClick={() => { setOptimizedChain(null); setNaiveChain(null); setManualChainIds([]); }}
+                    className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+                  >
+                    Clear Results
+                  </button>
+                )}
+              </div>
+              <OptimizedChainView chain={optimizedChain} assumptions={assumptions} />
+            </div>
 
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight font-display">
-              Optimized Dispatch Chain
-              {apiConnected && <span className="ml-2 text-xs text-green-500 font-normal">(Live API)</span>}
-            </h2>
-            {optimizedChain && (
-              <button
-                onClick={() => { setOptimizedChain(null); setNaiveChain(null); setManualChainIds([]); }}
-                className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
-              >
-                Clear Results
-              </button>
-            )}
-          </div>
-          <OptimizedChainView chain={optimizedChain} assumptions={assumptions} />
-        </div>
+            <ComparisonView optimized={optimizedChain} naive={naiveChain} />
 
-        <ComparisonView optimized={optimizedChain} naive={naiveChain} />
+            <div className="mb-20">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">
+                  Load Pool ({scoredLoads.length} loads)
+                  {apiConnected && <span className="ml-2 text-xs text-green-500 font-normal">Scored via API</span>}
+                </h2>
+              </div>
+              <LoadPoolTable
+                loads={scoredLoads}
+                includedInChain={manualChainIds}
+                onToggleLoad={handleToggleLoad}
+                onFeedbackClick={handleFeedbackClick}
+              />
+            </div>
+          </>
+        )}
 
-        <div className="mb-20">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">
-              Load Pool ({scoredLoads.length} loads)
-              {apiConnected && <span className="ml-2 text-xs text-green-500 font-normal">Scored via API</span>}
-            </h2>
-          </div>
-          <LoadPoolTable
-            loads={scoredLoads}
-            includedInChain={manualChainIds}
-            onToggleLoad={handleToggleLoad}
+        {/* Import Loads Tab */}
+        {activeTab === 'import' && (
+          <PasteIngestion onLoadsSaved={refreshLoads} />
+        )}
+
+        {/* Watchlist Tab */}
+        {activeTab === 'watchlist' && (
+          <WatchlistView
+            committedLoadIds={manualChainIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))}
+            availableLoads={scoredLoads}
+            startCity={truckLocation}
+            hosRemaining={hosRemaining}
+            maxDays={assumptions.daysAway + 1}
+            onLoadBooked={handleLoadBooked}
           />
-        </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <CostConfigPanel
+            isOpen={isSettingsOpen}
+            onToggle={() => setIsSettingsOpen(prev => !prev)}
+          />
+        )}
       </main>
 
       <AddLoadModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddLoad}
+      />
+
+      <LoadFeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={handleFeedbackClose}
+        load={feedbackLoad}
+        onFeedbackSubmitted={handleFeedbackSubmitted}
       />
 
       {/* Footer / Branding */}
@@ -433,7 +544,7 @@ export default function App() {
         </div>
         <p className="text-xs text-slate-700">© 2026 Stratus Dispatch Intelligence. All rights reserved.</p>
         {apiConnected && (
-          <p className="text-xs text-green-600 mt-2">Connected to backend • Using Google Maps API for real distances</p>
+          <p className="text-xs text-green-600 mt-2">Connected to backend - Using Google Maps API for real distances</p>
         )}
       </footer>
     </div>
