@@ -260,7 +260,7 @@ export async function healthCheck(): Promise<boolean> {
  * Get the current cost configuration
  */
 export async function getCostConfig(): Promise<CostConfig> {
-  const response = await fetch(`${API_BASE_URL}/api/cost-config`);
+  const response = await fetch(`${API_BASE_URL}/api/config/costs`);
   if (!response.ok) throw new Error('Failed to get cost config');
   return transformToCamelCase(await response.json());
 }
@@ -269,7 +269,7 @@ export async function getCostConfig(): Promise<CostConfig> {
  * Update cost configuration (partial update)
  */
 export async function updateCostConfig(config: Partial<CostConfig>): Promise<CostConfig> {
-  const response = await fetch(`${API_BASE_URL}/api/cost-config`, {
+  const response = await fetch(`${API_BASE_URL}/api/config/costs`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transformToSnakeCase(config)),
@@ -286,7 +286,7 @@ export async function updateCostConfig(config: Partial<CostConfig>): Promise<Cos
  * Get the current scorer weights
  */
 export async function getScorerConfig(): Promise<ScorerConfig> {
-  const response = await fetch(`${API_BASE_URL}/api/scorer-config`);
+  const response = await fetch(`${API_BASE_URL}/api/config/scorer`);
   if (!response.ok) throw new Error('Failed to get scorer config');
   return transformToCamelCase(await response.json());
 }
@@ -295,7 +295,7 @@ export async function getScorerConfig(): Promise<ScorerConfig> {
  * Update scorer weights
  */
 export async function updateScorerConfig(config: ScorerConfig): Promise<ScorerConfig> {
-  const response = await fetch(`${API_BASE_URL}/api/scorer-config`, {
+  const response = await fetch(`${API_BASE_URL}/api/config/scorer`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transformToSnakeCase(config)),
@@ -351,7 +351,7 @@ export async function ingestComplete(
  */
 export async function updateLoadOutcome(loadId: number, outcome: string): Promise<any> {
   const response = await fetch(`${API_BASE_URL}/api/loads/${loadId}/outcome`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ outcome }),
   });
@@ -457,7 +457,7 @@ export async function resolveWatchlist(
  * Get city demand tiers
  */
 export async function getDemandTiers(): Promise<CityDemandTier[]> {
-  const response = await fetch(`${API_BASE_URL}/api/demand-tiers`);
+  const response = await fetch(`${API_BASE_URL}/api/config/demand-tiers`);
   if (!response.ok) throw new Error('Failed to get demand tiers');
   return transformToCamelCase(await response.json());
 }
@@ -466,7 +466,7 @@ export async function getDemandTiers(): Promise<CityDemandTier[]> {
  * Update city demand tiers
  */
 export async function updateDemandTiers(tiers: CityDemandTier[]): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/api/demand-tiers`, {
+  const response = await fetch(`${API_BASE_URL}/api/config/demand-tiers`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transformToSnakeCase(tiers)),
@@ -495,10 +495,10 @@ export async function resolveDuplicate(
   loadId: number,
   action: 'keep' | 'remove' | 'merge'
 ): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/api/duplicates/${loadId}`, {
+  const response = await fetch(`${API_BASE_URL}/api/duplicates`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ load_id: loadId, action }),
   });
   if (!response.ok) throw new Error('Failed to resolve duplicate');
   return transformToCamelCase(await response.json());
