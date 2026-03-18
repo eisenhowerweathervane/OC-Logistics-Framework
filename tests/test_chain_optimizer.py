@@ -294,6 +294,37 @@ class TestMultiDayWithRest:
         assert real_legs[1]["day"] == 2
 
 
+class TestVsBackhaulComparison:
+    def test_vs_backhaul_comparison(self):
+        """Optimizer output should include vs_backhaul comparison."""
+        loads = [
+            {"origin_city": "Columbus", "origin_state": "OH",
+             "destination_city": "Pittsburgh", "destination_state": "PA",
+             "mileage": 185, "rate_total": 1200.00},
+        ]
+        result = optimize_chain(loads, start_city="Cleveland, OH")
+        assert "vs_backhaul" in result["summary"]
+        assert "straight_backhaul_cost" in result["summary"]["vs_backhaul"]
+        assert "profit_vs_backhaul" in result["summary"]["vs_backhaul"]
+        # With a high rate, chaining loads should beat driving home empty
+        assert result["summary"]["vs_backhaul"]["profit_vs_backhaul"] > 0
+
+    def test_vs_backhaul_has_all_keys(self):
+        """vs_backhaul dict should include all four expected keys."""
+        loads = [_make_load("Columbus", "OH", "Pittsburgh", "PA", 600, 185)]
+        result = optimize_chain(loads, start_city="Cleveland, OH", db_path=TEST_DB_PATH)
+        vb = result["summary"]["vs_backhaul"]
+        for key in ["straight_backhaul_cost", "chain_total_profit",
+                     "profit_vs_backhaul", "pct_improvement"]:
+            assert key in vb, f"Missing vs_backhaul key: {key}"
+
+    def test_empty_loads_no_vs_backhaul(self):
+        """Empty loads result should not have vs_backhaul (empty result)."""
+        result = optimize_chain([], start_city="Cleveland, OH", db_path=TEST_DB_PATH)
+        # Empty result doesn't go through the vs_backhaul code path
+        assert "vs_backhaul" not in result["summary"]
+
+
 class TestReturnFormat:
     def test_summary_keys(self):
         loads = [_make_load("Columbus", "OH", "Pittsburgh", "PA", 600, 185)]

@@ -150,6 +150,24 @@ def optimize_chain(
 
     # Build summary
     summary = _build_summary(legs, return_cost, best_chain.hos, best_chain.day)
+
+    # vs backhaul comparison: what if we just drove straight home empty?
+    straight_home_info = get_drive_info(start_city, home_base, avg_speed)
+    straight_backhaul_cost = round(cpm * straight_home_info["distance_miles"], 2)
+    chain_total_profit = summary["total_profit"]
+    profit_vs_backhaul = round(chain_total_profit - (-straight_backhaul_cost), 2)
+    pct_improvement = (
+        round(profit_vs_backhaul / straight_backhaul_cost * 100, 2)
+        if straight_backhaul_cost > 0
+        else 0.0
+    )
+    summary["vs_backhaul"] = {
+        "straight_backhaul_cost": straight_backhaul_cost,
+        "chain_total_profit": chain_total_profit,
+        "profit_vs_backhaul": profit_vs_backhaul,
+        "pct_improvement": pct_improvement,
+    }
+
     return {"legs": legs, "summary": summary}
 
 
